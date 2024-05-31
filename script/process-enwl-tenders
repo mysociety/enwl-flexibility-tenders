@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+if (process.argv.length !== 3) {
+    console.error(`Usage: ${path.basename(process.argv[1])} <path_to_enwl_geojson_file>`);
+    process.exit(1);
+}
+
+const filePath = process.argv[2];
+
+fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+        console.error(`Error reading file from disk: ${err}`);
+        process.exit(1);
+    }
+
+    let obj = {};
+
+    try {
+        obj = JSON.parse(data);
+    } catch (err) {
+        console.error(`Error parsing JSON file: ${err}`);
+        process.exit(2);
+    }
+
+    if ( ! obj.features || ! obj.features.length ) {
+        console.error('GeoJSON file does not contain any features');
+        process.exit(3);
+    }
+
+    // Coordinates of a bounding box around Greater Manchester.
+    const GreaterManchester = {
+        top: 53.6414,
+        right: -1.9104,
+        bottom: 53.3264,
+        left: -2.5508
+    }
+
+    // Features keyed by a hash of their coordinates.
+    let deduplicatedFeatures = {};
+
+    obj.features.forEach(function(feature){
+        let coords = feature.geometry.coordinates;
+
+        // Ignore features even partially outside GreaterManchester.
+        if ( allCoordsInside(coords, GreaterManchester) ) {
+            let hash = crypto.createHash('md5').update( JSON.stringify(coords) ).digest('hex');
+
+            if ( deduplicatedFeatures.hasOwnProperty(hash) ) {
+                // Add properties to existing deduplicated feature.
+                deduplicatedFeatures[hash].properties.tenders.push(feature.properties);
+            } else {
+                // Nest feature’s properties inside a `tenders` array
+                // (so that we can add more tenders in future loops),
+                // then store it in the list.
+                feature.properties = {
+                    tenders: [ feature.properties ],
+                    id: hash
+                };
+                deduplicatedFeatures[hash] = feature;
+            }
+        }
+    });
+
+    // Print the deduplicated features, as a new FeatureCollection.
+    console.log(JSON.stringify({
+        "type": "FeatureCollection",
+        "features": Object.values(deduplicatedFeatures)
+    }));
+});
+
+let allCoordsInside = function(coords, bounds){
+    // GeoJSON features can be nested multiple layers deep.
+    // Keep digging until we find a pair of coordinates.
+    let getFirstSetOfCoords = function(coords) {
+        if ( coords.length == 2 && typeof coords[0] === "number" && typeof coords[1] === "number" ) {
+            return coords;
+        } else {
+            return getFirstSetOfCoords(coords[0]);
+        }
+    }
+
+    let [lon, lat] = getFirstSetOfCoords(coords);
+
+    return (
+        bounds.left < lon &&
+        bounds.right > lon &&
+        bounds.top > lat &&
+        bounds.bottom < lat
+    );
+};

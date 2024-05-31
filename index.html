@@ -2,8 +2,10 @@
 layout: default
 ---
 
-<div class="container py-4 py-md-5">
-    <h1>Homepage</h1>
+<div id="app" class="vh-100 vw-100 d-flex flex-column">
+    <div class="p-3 bg-white border-bottom flex-grow-0 flex-shrink-0 d-flex align-items-center gap-3">
+        {% include logo.html classes="text-danger site-logo" %}
+        <span class="text-muted">Data explorer</span>
+    </div>
+    <div ref="map" class="w-100 h-100"></div>
 </div>
-
-<div id="map" style="height: 50vh; width: 100%;"></div>

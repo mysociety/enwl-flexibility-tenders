@@ -2,6 +2,18 @@ $leaflet-images-directory: '../vendor/leaflet/img';
 
 // Color system
 
+$white:    #fff;
+$gray-100: #f8f9fa;
+$gray-200: #e9ecef;
+$gray-300: #dee2e6;
+$gray-400: #ced4da;
+$gray-500: #adb5bd;
+$gray-600: #6c757d;
+$gray-700: #495057;
+$gray-800: #343a40;
+$gray-900: #212529;
+$black:    #000;
+
 // Options
 
 $enable-shadows: true;
@@ -10,6 +22,19 @@ $enable-negative-margins: true;
 // Gradient
 
 // Spacing
+
+$spacer: 1rem;
+$spacers: (
+  0: 0,
+  1: $spacer * .25,
+  2: $spacer * .5,
+  3: $spacer,
+  4: $spacer * 1.5,
+  5: $spacer * 3,
+  6: $spacer * 4.5,
+  7: $spacer * 6,
+  8: $spacer * 8
+);
 
 // Position
 
@@ -31,7 +56,39 @@ $enable-negative-margins: true;
 
 // Components
 
+$border-color: $gray-400; // up from $gray-300
+
 // Typography
+
+$font-size-base: 1rem;
+$font-size-sm: $font-size-base * .875;
+
+$h1-font-size: $font-size-base * 2.5;
+$h2-font-size: $font-size-base * 2;
+$h3-font-size: $font-size-base * 1.75;
+$h4-font-size: $font-size-base * 1.5;
+$h5-font-size: $font-size-base * 1.25;
+$h6-font-size: $font-size-base;
+
+$font-sizes: (
+  1: $h1-font-size,
+  2: $h2-font-size,
+  3: $h3-font-size,
+  4: $h4-font-size,
+  5: $h5-font-size,
+  6: $h6-font-size,
+  7: $font-size-sm,
+  8: $font-size-base * 0.75,
+  9: $font-size-base * 0.66,
+  10: $font-size-base * 0.5
+);
+
+$headings-font-weight: 800;
+$headings-line-height: 1.1;
+
+$display-font-weight: 800;
+
+$legend-font-size: 1rem;
 
 // Tables
 
@@ -39,7 +96,11 @@ $enable-negative-margins: true;
 
 // Buttons
 
+$btn-font-weight: bold;
+
 // Forms
+
+$form-label-font-weight: bold;
 
 // Form validation
 

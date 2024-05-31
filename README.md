@@ -30,3 +30,17 @@ Once the SSL certificates are in place, `script/server` will serve the site over
 You can build the site to `_site` (without serving it) with:
 
     script/build
+
+## Regenerating areas.geojson
+
+`static/js/areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round), in the Greater Manchester area.
+
+[ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (if a substation area has multiple tenders at different times, it is represented by multiple identical polygons). For simplicity, we deduplicate these polygons, with `script/process-enwl-tenders-geojson`.
+
+To regenerate `areas.geojson`, you will need:
+
+- [Node.js](https://nodejs.org)
+
+Then (assuming you’ve downloaded the ENWL GeoJSON to `./enwl-flexibility-tenders.geojson`) run:
+
+    script/process-enwl-tenders enwl-flexibility-tenders.geojson > static/js/areas.geojson

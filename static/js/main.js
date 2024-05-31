@@ -1,14 +1,73 @@
-$(function(){
-    console.log('jQuery ready')
-    console.log('_.now()', _.now())
-    console.log('bootstrap.Modal', bootstrap.Modal);
-    console.log('leaflet', leaflet);
+const { createApp, ref } = Vue;
 
-    var map = L.map('map').setView([51.505, -0.09], 13);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    var marker = L.marker([51.5, -0.09]).addTo(map);
+createApp({
+    delimiters: ["${", "}"], // avoid conflict with Jekyll `{{ }}` delimiters
+    data() {
+        return {
+            map: null,
+            areas: null // Leaflet.GeoJSON layer, for storing all areas
+        }
+    },
+    computed: {
 
-})
+    },
+    mounted() {
+        var _this = this;
+        _this.setUpMap();
+    },
+    watch: {
+
+    },
+    methods: {
+        setUpMap(){
+            var _this = this;
+
+            _this.map = L.map(_this.$refs.map).setView([54.0934, -2.8948], 7);
+
+            L.tileLayer(
+                'https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=7ac28b44c7414ced98cd4388437c718d',
+                {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }
+            ).addTo(_this.map);
+
+            $.ajax({
+                type: 'GET',
+                dataType: 'json',
+                url: 'static/js/areas.geojson'
+            }).done(function(geojsonObj){
+                _this.areas = L.geoJSON(
+                    geojsonObj.features,
+                    {
+                        style: {
+                            fillOpacity: 0.2,
+                            color: "#FC832A"
+                        },
+                        onEachFeature: function(feature, layer){
+                            layer.on('mouseover', function(e){
+                                this.setStyle({ fillOpacity: 0.4 });
+                                this.openTooltip(e.latlng);
+                            });
+                            layer.on('mousemove', function(e){
+                                this.openTooltip(e.latlng);
+                            });
+                            layer.on('mouseout', function(){
+                                this.setStyle({ fillOpacity: 0.2 });
+                                this.closeTooltip();
+                            });
+                            layer.on('click', function(e){
+                                console.log(feature.properties);
+                                this.openTooltip(e.latlng);
+                            });
+                            layer.bindTooltip(feature.properties.tenders[0].substation_name, {
+                                className: "pe-none" // prevent flicker when mousing over tooltip
+                            });
+                        }
+                    }
+                ).addTo(_this.map);
+                _this.map.fitBounds(_this.areas.getBounds());
+            });
+        }
+    }
+}).mount('#app');
