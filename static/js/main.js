@@ -5,7 +5,15 @@ createApp({
     data() {
         return {
             map: null,
-            areas: null // Leaflet.GeoJSON layer, for storing all areas
+            areas: null, // Leaflet.GeoJSON layer, for storing all areas
+            points: null, // Leaflet.GeoJSON layer, for storing points
+            colors: {
+                tender: "#FC832A",
+                member: "#FF0000",
+                monitor: "#0000FF",
+                flex: "#FFFF00",
+                boiler: "#00FFFF"
+            }
         }
     },
     computed: {
@@ -42,7 +50,7 @@ createApp({
                     {
                         style: {
                             fillOpacity: 0.2,
-                            color: "#FC832A"
+                            color: _this.colors['tender']
                         },
                         onEachFeature: function(feature, layer){
                             layer.on('mouseover', function(e){
@@ -67,6 +75,32 @@ createApp({
                     }
                 ).addTo(_this.map);
                 _this.map.fitBounds(_this.areas.getBounds());
+            });
+
+            $.ajax({
+                type: 'GET',
+                dataType: 'json',
+                url: 'static/js/points.geojson'
+            }).done(function(geojsonObj){
+                _this.points = L.geoJSON(
+                    geojsonObj.features,
+                    {
+                        pointToLayer: function(feature, latlng){
+                            return L.circleMarker(latlng, {
+                                radius: 4,
+                                color: _this.colors[feature.properties.category] || "#999"
+                            });
+                        },
+                        onEachFeature: function(feature, layer){
+                            layer.on('click', function(e){
+                                console.log(feature.properties);
+                            });
+                            layer.bindTooltip(feature.properties.category, {
+                                className: "pe-none" // prevent flicker when mousing over tooltip
+                            });
+                        }
+                    }
+                ).addTo(_this.map);
             });
         }
     }
