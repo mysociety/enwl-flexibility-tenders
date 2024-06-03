@@ -1,4 +1,4 @@
-const { createApp, ref } = Vue;
+const { createApp, ref, toRaw } = Vue;
 
 createApp({
     delimiters: ["${", "}"], // avoid conflict with Jekyll `{{ }}` delimiters
@@ -38,7 +38,7 @@ createApp({
                     maxZoom: 19,
                     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 }
-            ).addTo(_this.map);
+            ).addTo(toRaw(_this.map));
 
             $.ajax({
                 type: 'GET',
@@ -73,8 +73,8 @@ createApp({
                             });
                         }
                     }
-                ).addTo(_this.map);
-                _this.map.fitBounds(_this.areas.getBounds());
+                ).addTo(toRaw(_this.map));
+                toRaw(_this.map).fitBounds(_this.areas.getBounds());
             });
 
             $.ajax({
@@ -100,7 +100,7 @@ createApp({
                             });
                         }
                     }
-                ).addTo(_this.map);
+                ).addTo(toRaw(_this.map));
             });
         }
     }
