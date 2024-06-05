@@ -1,19 +1,26 @@
 const { createApp, ref, toRaw } = Vue;
 
+var quintileBand = function(percentage, band1, band2, band3, band4, band5) {
+    if ( percentage < 20 ) {
+        return band1;
+    } else if ( percentage < 40 ) {
+        return band2;
+    } else if ( percentage < 60 ) {
+        return band3;
+    } else if ( percentage < 80 ) {
+        return band4;
+    } else {
+        return band5;
+    }
+};
+
 createApp({
     delimiters: ["${", "}"], // avoid conflict with Jekyll `{{ }}` delimiters
     data() {
         return {
             map: null,
             dataLayers: {}, // dataset details and Leaflet layers, keyed by dataset ID
-            visibleLayers: null, // Leaflet.FeatureGroup
-            colors: {
-                tender: "#FC832A",
-                member: "#FF0000",
-                monitor: "#0000FF",
-                flex: "#FFFF00",
-                boiler: "#00FFFF"
-            }
+            visibleLayers: null // Leaflet.FeatureGroup
         }
     },
     computed: {
@@ -44,14 +51,14 @@ createApp({
             $.ajax({
                 type: 'GET',
                 dataType: 'json',
-                url: 'static/js/areas.geojson'
+                url: 'static/data/areas.geojson'
             }).done(function(geojsonObj){
                 var layer = L.geoJSON(
                     geojsonObj.features,
                     {
                         style: {
                             fillOpacity: 0.2,
-                            color: _this.colors['tender']
+                            color: "#FC832A"
                         },
                         onEachFeature: function(feature, layer){
                             layer.on('mouseover', function(e){
@@ -92,7 +99,7 @@ createApp({
             $.ajax({
                 type: 'GET',
                 dataType: 'json',
-                url: 'static/js/points.geojson'
+                url: 'static/data/points.geojson'
             }).done(function(geojsonObj){
                 _.each(
                     _.groupBy(geojsonObj.features, function(feature){ return feature.properties.category; }),
@@ -102,8 +109,19 @@ createApp({
                             {
                                 pointToLayer: function(feature, latlng){
                                     return L.circleMarker(latlng, {
-                                        radius: 4,
-                                        color: _this.colors[feature.properties.category] || "#999"
+                                        fillOpacity: 0,
+                                        radius: {
+                                            member: 9,
+                                            monitor: 6,
+                                            flex: 3,
+                                            boiler: 3
+                                        }[feature.properties.category] || 4,
+                                        color: {
+                                            member: "#FF0000",
+                                            monitor: "#0000FF",
+                                            flex: "#00CCFF",
+                                            boiler: "#FFCC00"
+                                        }[feature.properties.category] || "#999"
                                     });
                                 },
                                 onEachFeature: function(feature, layer){
@@ -129,22 +147,8 @@ createApp({
             $.ajax({
                 type: 'GET',
                 dataType: 'json',
-                url: 'static/js/smart-meter-installation.geojson'
+                url: 'static/data/smart-meter-installation.geojson'
             }).done(function(geojsonObj){
-                var getColor = function(percentage) {
-                    if ( percentage < 20 ) {
-                        return '#ff0000'; // red
-                    } else if ( percentage < 40 ) {
-                        return '#ffc100'; // orange
-                    } else if ( percentage < 60 ) {
-                        return '#ffff00'; // yellow
-                    } else if ( percentage < 80 ) {
-                        return '#d6ff00'; // lime
-                    } else {
-                        return '#63ff00'; // green
-                    }
-                };
-
                 var layer = L.geoJSON(
                     geojsonObj.features,
                     {
@@ -153,7 +157,14 @@ createApp({
                                 marker: "D",
                                 radius: 6,
                                 stroke: false,
-                                fillColor: getColor(feature.properties.sm_installation),
+                                fillColor: quintileBand(
+                                    feature.properties.sm_installation, // 0-100
+                                    '#ff0000', // red
+                                    '#ffc100', // orange
+                                    '#ffff00', // yellow
+                                    '#d6ff00', // lime
+                                    '#63ff00'  // green
+                                ),
                                 fillOpacity: 1
                             });
                         },
@@ -173,6 +184,92 @@ createApp({
                     id: 'smart-meters',
                     label: 'ENWL smart meter adoption rate',
                     layer: layer
+                };
+            });
+
+            $.ajax({
+                type: 'GET',
+                dataType: 'text',
+                url: 'static/data/dumb-meters.csv'
+            }).done(function(text){
+                var rows = Papa.parse(text, {
+                    dynamicTyping: true,
+                    header: true,
+                    skipEmptyLines: true
+                }).data;
+
+                var electricLayer = L.layerGroup();
+                var gasLayer = L.layerGroup();
+
+                var gasConsumption = _.pluck(rows, 'gas_consumption_kwh');
+                var gasConsumptionMin = _.min(gasConsumption);
+                var gasConsumptionMax = _.max(gasConsumption);
+
+                _.each(
+                    rows,
+                    function(row){
+                        var latlng = L.latLng(row.lat, row.lon);
+
+                        var economy7_percent = Math.round(row.electricity_economy7_meters / row.electricity_all_meters * 100);
+                        var gas_percent = Math.round((row.gas_consumption_kwh - gasConsumptionMin) / gasConsumptionMax * 100);
+                        var gas_word = quintileBand(
+                            gas_percent, // 0-100
+                            'Very low',
+                            'Low',
+                            'Medium',
+                            'High',
+                            'Very high'
+                        );
+
+                        var electricLabel = '<small class="d-block text-muted">' + row.postcode + '</small>' + row.electricity_all_meters + ' electricity meters<br>(' + economy7_percent + '% Economy7)';
+                        var gasLabel = '<small class="d-block text-muted">' + row.postcode + '</small>' + row.gas_meters + ' gas meters<br>' + gas_word + ' consumption (' + Math.round(row.gas_consumption_kwh).toLocaleString() + ' kWh)';
+
+                        L.polyMarker(latlng, {
+                            marker: "^",
+                            radius: 6,
+                            stroke: false,
+                            fillColor: quintileBand(
+                                economy7_percent, // 0-100
+                                '#ff0000', // red
+                                '#ffc100', // orange
+                                '#ffff00', // yellow
+                                '#d6ff00', // lime
+                                '#63ff00'  // green
+                            ),
+                            fillOpacity: 1
+                        }).bindTooltip(electricLabel, {
+                            className: "pe-none" // prevent flicker when mousing over tooltip
+                        }).addTo(electricLayer);
+
+                        L.polyMarker(latlng, {
+                            marker: "v",
+                            radius: 6,
+                            stroke: false,
+                            fillColor: quintileBand(
+                                gas_percent, // 0-100
+                                '#ff0000', // red
+                                '#ffc100', // orange
+                                '#ffff00', // yellow
+                                '#d6ff00', // lime
+                                '#63ff00'  // green
+                            ),
+                            fillOpacity: 1
+                        }).bindTooltip(gasLabel, {
+                            className: "pe-none" // prevent flicker when mousing over tooltip
+                        }).addTo(gasLayer);
+                    }
+                );
+
+                _this.dataLayers['electric-meters'] = {
+                    id: 'electric-meters',
+                    label: 'Domestic electricity mix, 2022',
+                    layer: electricLayer
+                };
+
+                _this.dataLayers['gas-meters'] = {
+                    id: 'gas-meters',
+                    label: 'Domestic gas consumption, 2022',
+                    layer: gasLayer
                 };
             });
         },
