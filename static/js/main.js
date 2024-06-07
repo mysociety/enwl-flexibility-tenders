@@ -73,6 +73,21 @@ createApp({
                             color: "#FC832A"
                         },
                         onEachFeature: function(feature, layer){
+                            var label = renderTemplate('areas-tooltip', {
+                                substation_name: feature.properties.tenders[0].substation_name,
+                                pr_tenders: _.where(
+                                    feature.properties.tenders,
+                                    { need_type: 'Peak Reduction' }
+                                ).length,
+                                ou_tenders: _.where(
+                                    feature.properties.tenders,
+                                    { need_type: 'Operational Utilisation' }
+                                ).length,
+                                ouva_tenders: _.where(
+                                    feature.properties.tenders,
+                                    { need_type: 'Operational Utilisation Variable Availability'}
+                                ).length
+                            });
                             layer.on('mouseover', function(e){
                                 this.setStyle({ fillOpacity: 0.4 });
                                 this.openTooltip(e.latlng);
@@ -88,7 +103,7 @@ createApp({
                                 console.log(feature.properties);
                                 this.openTooltip(e.latlng);
                             });
-                            layer.bindTooltip(feature.properties.tenders[0].substation_name, {
+                            layer.bindTooltip(label, {
                                 className: "pe-none" // prevent flicker when mousing over tooltip
                             });
                         }

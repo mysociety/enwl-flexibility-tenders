@@ -19,6 +19,13 @@ layout: default
     </div>
 </div>
 
+<template id="areas-tooltip">
+    <strong class="d-block">[[= substation_name ]]</strong>
+    [[= pr_tenders ]] peak reduction tenders<br>
+    [[= ouva_tenders ]] OU+VA tenders<br>
+    [[= ou_tenders ]] OU tenders
+</template>
+
 <template id="smart-meters-tooltip">
     <small class="d-block text-muted">Substation [[= dist_number ]]</small>
     [[= smart_meters ]] out of
