@@ -137,10 +137,17 @@ createApp({
                                     });
                                 },
                                 onEachFeature: function(feature, layer){
+                                    if ( 'external_id' in feature.properties ) {
+                                        var label = feature.properties.category + ' ' + feature.properties.external_id;
+                                    } else if ( 'boiler_type' in feature.properties ) {
+                                        var label = feature.properties.category + ' type ' + feature.properties.boiler_type;
+                                    } else {
+                                        var label = feature.properties.category;
+                                    }
                                     layer.on('click', function(e){
                                         console.log(feature.properties);
                                     });
-                                    layer.bindTooltip(feature.properties.category, {
+                                    layer.bindTooltip(label, {
                                         className: "pe-none" // prevent flicker when mousing over tooltip
                                     });
                                 }
