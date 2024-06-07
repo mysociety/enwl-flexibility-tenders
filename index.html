@@ -18,3 +18,25 @@ layout: default
         <div ref="map" class="w-100 h-100"></div>
     </div>
 </div>
+
+<template id="smart-meters-tooltip">
+    <small class="d-block text-muted">Substation [[= dist_number ]]</small>
+    [[= smart_meters ]] out of
+    [[= all_customers ]] customers
+    ([[= sm_installation ]]%) have a smart meter
+</template>
+
+<template id="electric-meters-tooltip">
+    <small class="d-block text-muted">[[= postcode ]]</small>
+    [[= meters ]] electricity meters<br>
+    ([[= economy7_percent ]]% Economy7)<br>
+    [[= consumption ]] kWh consumption<br>
+    ([[= mean_consumption ]] kWh per meter)
+</template>
+
+<template id="gas-meters-tooltip">
+    <small class="d-block text-muted">[[= postcode ]]</small>
+    [[= meters ]] gas meters<br>
+    [[= word ]] consumption, [[= consumption ]] kWh<br>
+    ([[= mean_consumption ]] kWh per meter)
+</template>

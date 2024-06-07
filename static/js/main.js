@@ -1,5 +1,17 @@
 const { createApp, ref, toRaw } = Vue;
 
+// nicer than underscore’s default ERB-style `<% %>` delimiters
+// but without conflicting with Jekyll’s `{{ }}` delimiters
+_.templateSettings = {
+    evaluate: /\[\[(.+?)\]\]/g,
+    interpolate: /\[\[=(.+?)\]\]/g,
+    escape: /\[\[-(.+?)\]\]/g,
+};
+
+var renderTemplate = function(id, data){
+    return _.template(document.getElementById(id).innerHTML)(data);
+};
+
 var quintileBand = function(percentage, band1, band2, band3, band4, band5) {
     if ( percentage < 20 ) {
         return band1;
@@ -169,7 +181,7 @@ createApp({
                             });
                         },
                         onEachFeature: function(feature, layer){
-                            var label = '<small class="d-block text-muted">Substation ' + feature.properties.dist_number + '</small>' + feature.properties.smart_meters + ' out of ' + feature.properties.all_customers + ' customers (' + feature.properties.sm_installation + '%) have a smart meter';
+                            var label = renderTemplate('smart-meters-tooltip', feature.properties);
                             layer.on('click', function(e){
                                 console.log(feature.properties);
                             });
@@ -182,7 +194,7 @@ createApp({
 
                 _this.dataLayers['smart-meters'] = {
                     id: 'smart-meters',
-                    label: 'ENWL smart meter adoption rate',
+                    label: 'ENWL smart meter adoption',
                     layer: layer
                 };
             });
@@ -221,8 +233,20 @@ createApp({
                             'Very high'
                         );
 
-                        var electricLabel = '<small class="d-block text-muted">' + row.postcode + '</small>' + row.electricity_all_meters + ' electricity meters<br>(' + economy7_percent + '% Economy7)';
-                        var gasLabel = '<small class="d-block text-muted">' + row.postcode + '</small>' + row.gas_meters + ' gas meters<br>' + gas_word + ' consumption (' + Math.round(row.gas_consumption_kwh).toLocaleString() + ' kWh)';
+                        var electricLabel = renderTemplate('electric-meters-tooltip', {
+                            postcode: row.postcode,
+                            meters: row.electricity_all_meters,
+                            economy7_percent: economy7_percent,
+                            consumption: Math.round(row.electricity_all_consumption_kwh).toLocaleString(),
+                            mean_consumption: Math.round(row.electricity_all_consumption_kwh / row.electricity_all_meters).toLocaleString()
+                        });
+                        var gasLabel = renderTemplate('gas-meters-tooltip', {
+                            postcode: row.postcode,
+                            meters: row.gas_meters,
+                            word: gas_word,
+                            consumption: Math.round(row.gas_consumption_kwh).toLocaleString(),
+                            mean_consumption: Math.round(row.gas_consumption_kwh / row.gas_meters).toLocaleString()
+                        });
 
                         L.polyMarker(latlng, {
                             marker: "^",
@@ -262,13 +286,13 @@ createApp({
 
                 _this.dataLayers['electric-meters'] = {
                     id: 'electric-meters',
-                    label: 'Domestic electricity mix, 2022',
+                    label: 'Domestic electricity, 2022',
                     layer: electricLayer
                 };
 
                 _this.dataLayers['gas-meters'] = {
                     id: 'gas-meters',
-                    label: 'Domestic gas consumption, 2022',
+                    label: 'Domestic gas, 2022',
                     layer: gasLayer
                 };
             });
