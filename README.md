@@ -31,36 +31,36 @@ You can build the site to `_site` (without serving it) with:
 
     script/build
 
-## Regenerating areas.geojson
+## Regenerating tender-areas.geojson
 
-`static/js/areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round), in the Greater Manchester area.
+`static/js/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round), in the Greater Manchester area.
 
-[ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (if a substation area has multiple tenders at different times, it is represented by multiple identical polygons). For simplicity, we deduplicate these polygons, with `script/process-enwl-tenders-geojson`.
+[ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (if a substation area has multiple tenders at different times, it is represented by multiple identical polygons). For simplicity, we deduplicate these polygons, with `script/generate-tender-areas-geojson`.
 
-To regenerate `areas.geojson`, you will need:
+To regenerate `tender-areas.geojson`, you will need:
 
 - [Node.js](https://nodejs.org)
 
 Then (assuming you’ve downloaded the ENWL GeoJSON to `./enwl-flexibility-tenders.geojson`) run:
 
-    script/process-enwl-tenders enwl-flexibility-tenders.geojson > static/js/areas.geojson
+    script/generate-tender-areas enwl-flexibility-tenders.geojson > static/js/tender-areas.geojson
 
 ## Regenerating dumb-meters.csv
 
-`static/data/dumbmeters.csv` is a CSV of data about electricity and gas meters and consumption, per postcode in the M (Manchester), BL (Bolton), SK (Stockport), WA (Warrington), and WN (Wigan) postcode areas.
+`static/data/dumb-meters.csv` is a CSV of data about electricity and gas meters and consumption, per postcode in ENWL tender areas.
 
 To recreate it, you’ll need to download:
 
-- `NSPL_Online_Centroids_2400086033526942602.csv` – [ONS National Statistics Postcode Lookup (NSPL) postcode centroids](https://geoportal.statistics.gov.uk/datasets/2e65b9933cd9483b8724760f27968a48_0/explore), Open Government Licensed
+- `enwl-flexibility-tender-postcode-data.csv` – [ENWL Flexibility Tender - Postcode Data](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-postcode-data/information/)
 - `Postcode_level_all_meters_electricity_2022.csv` – [Postcode-level all domestic meters electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_standard_electricity_2022.csv` – [Postcode-level standard domestic electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_economy_7_electricity_2022.csv` – [Postcode-level Economy 7 domestic electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_gas_2022.csv` – [Postcode-level domestic gas 2022](https://www.gov.uk/government/statistics/postcode-level-gas-statistics-2022), Open Government Licensed
 
-I used the Python program `csvfilter` to extract just the columns I needed from `NSPL_` (but annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
+I used the Python program `csvfilter` to extract just the columns I needed from `enwl-flexibility-tender-postcode-data.csv` (but annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
 
     pipx install "git+https://github.com/lk-jeffpeck/csvfilter.git@ec433f14330fbbf5d41f56febfeedac22868a949"
-    csvfilter -f 1,34,35 NSPL_Online_Centroids_2400086033526942602.csv > NSPL.csv
+    csvfilter -f 1,2,5 enwl-flexibility-tender-postcode-data.csv > enwl-postcode-latlon.csv
 
 I then created a SQLite3 database to munge the data together into:
 
@@ -72,7 +72,7 @@ From here on, everything is done from inside the SQLite command prompt. First, c
     create table electricity_standard(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table electricity_economy7(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table gas(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
-    create table postcodes (postcode, lat, lon);
+    create table postcodes(postcode, tender_area, latlon);
 
     create index idx_electricity_all_postcode on electricity_all (postcode);
     create index idx_electricity_standard_postcode on electricity_standard (postcode);
@@ -87,7 +87,7 @@ Then importing the data:
     .import --skip 1 Postcode_level_standard_electricity_2022.csv electricity_standard
     .import --skip 1 Postcode_level_economy_7_electricity_2022.csv electricity_economy7
     .import --skip 1 Postcode_level_gas_2022.csv gas
-    .import --skip 1 NSPL.csv postcodes
+    .import --skip 1 enwl-postcode-latlon.csv postcodes
     .mode columns
 
 Then removing some rows we don’t need (technically this is optional, but it makes things simpler later on):
@@ -102,7 +102,7 @@ Then adding a "cleaned" postcode column, `pc`, that’s standardised across all 
     alter table electricity_all add column pc;
     alter table electricity_standard add column pc;
     alter table electricity_economy7 add column pc;
-    alter table electricity_gas add column pc;
+    alter table gas add column pc;
     alter table postcodes add column pc;
 
     create index idx_electricity_all_pc on electricity_all (pc);
@@ -117,14 +117,67 @@ Then adding a "cleaned" postcode column, `pc`, that’s standardised across all 
     update gas set pc = upper(replace(postcode, ' ', ''));
     update postcodes set pc = upper(replace(postcode, ' ', ''));
 
-Then creating a SQL view that joins all the tables together, picking just the `postcode`, `lat` and `lon` fields, as well as the number of meters and the total consumption:
+Then creating a SQL view that joins all the tables together, picking just location data, the numbers of meters, and the total consumptions:
 
-    create view combined as select electricity_all.postcode, postcodes.lon, postcodes.lat, electricity_all.num_meters as "electricity_all_meters", electricity_all.total_cons_kwh as "electricity_all_consumption_kwh", electricity_standard.num_meters as "electricity_standard_meters", electricity_standard.total_cons_kwh as "electricity_standard_consumption_kwh", electricity_economy7.num_meters as "electricity_economy7_meters", electricity_economy7.total_cons_kwh as "electricity_economy7_consumption_kwh", gas.num_meters as "gas_meters", gas.total_cons_kwh as "gas_consumption_kwh" from electricity_all join electricity_standard on electricity_all.pc = electricity_standard.pc join electricity_economy7 on electricity_all.pc = electricity_economy7.pc join gas on electricity_all.pc = gas.pc join postcodes on electricity_all.pc = postcodes.pc;
+    create view
+        combined
+    as
+        select
+            postcodes.postcode,
+            postcodes.tender_area,
+            postcodes.latlon,
+            electricity_all.num_meters as "electricity_all_meters",
+            electricity_all.total_cons_kwh as "electricity_all_consumption_kwh",
+            electricity_standard.num_meters as "electricity_standard_meters",
+            electricity_standard.total_cons_kwh as "electricity_standard_consumption_kwh",
+            electricity_economy7.num_meters as "electricity_economy7_meters",
+            electricity_economy7.total_cons_kwh as "electricity_economy7_consumption_kwh",
+            gas.num_meters as "gas_meters",
+            gas.total_cons_kwh as "gas_consumption_kwh"
+        from
+            postcodes
+        left join
+            electricity_all on postcodes.pc = electricity_all.pc
+        left join
+            electricity_standard on electricity_all.pc = electricity_standard.pc
+        left join
+            electricity_economy7 on electricity_all.pc = electricity_economy7.pc
+        left join
+            gas on electricity_all.pc = gas.pc;
 
-Then exporting just the required postcode areas to a CSV:
+Then exporting data from just the required tender areas (Moss Lane, Moss Side, Frederick Rd BSP, and Marple) to a CSV:
 
     .mode csv
     .output dumb-meters.csv
-    select * from combined where (postcode like 'M%' and postcode not like 'ME%' and postcode not like 'MK%' and postcode not like 'ML%') or postcode like 'BL%' or postcode like 'SK%' or postcode like 'WA%' or postcode like 'WN%';
+    select
+        postcode,
+        tender_area,
+        latlon,
+        electricity_all_meters,
+        cast(round(electricity_all_consumption_kwh) as int) as "electricity_all_consumption_kwh",
+        electricity_standard_meters,
+        cast(round(electricity_standard_consumption_kwh) as int) as "electricity_standard_consumption_kwh",
+        electricity_economy7_meters,
+        cast(round(electricity_economy7_consumption_kwh) as int) as "electricity_economy7_consumption_kwh",
+        gas_meters,
+        cast(round(gas_consumption_kwh) as int) as "gas_consumption_kwh"
+    from
+        combined
+    where
+        tender_area in ('FREDERICK RD GRID', 'MARPLE', 'MOSS LN', 'MOSS SIDE');
     .output stdout
     .mode columns
+
+## Regenerating postcode-units.geojson
+
+`static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas, based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
+
+To regenerate them, you’ll first need to:
+
+- Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
+- Generate `static/data/areas.geojson` using `script/generate-tender-areas`, as described above
+- Download and unarchive [Mark Longair’s postcode boundaries data](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/) (approx 1 GB download, 4.25 GB once unarchived)
+
+Then, with these things in place, you can run `script/generate-postcode-units`, passing in the path to the `units` directory inside Mark’s data, to output just the boundaries we need to `static/data/postcode-units.geojson`:
+
+    script/generate-postcode-units /path/to/gb-postcodes-v5/units

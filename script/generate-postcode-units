@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+
+UNITS_DIR="$1" # path to gb-postcodes-v5/units directory, no final slash
+DATA_DIR="$(dirname "$0")/../static/data" # path to /data directory
+
+# 4 decimal places is pretty brutal, but still generates roughly accurate
+# postcode unit boundaries, at almost a third the filesize of the source
+# data (14 decimal places), and two thirds the size it would be if we
+# increased to 5 decimal places.
+PRECISION="0.0001"
+
+mapshaper \
+    -i \
+        "$UNITS_DIR/M1*" \
+        "$UNITS_DIR/M2*" \
+        "$UNITS_DIR/M3*" \
+        "$UNITS_DIR/M4*" \
+        "$UNITS_DIR/M5*" \
+        "$UNITS_DIR/M6*" \
+        "$UNITS_DIR/M7*" \
+        "$UNITS_DIR/M8*" \
+        "$UNITS_DIR/M9*" \
+        "$UNITS_DIR/BL*" \
+        "$UNITS_DIR/SK*" \
+        "$UNITS_DIR/WA*" \
+        "$UNITS_DIR/WN*" \
+        combine-files \
+    -merge-layers \
+    -clip "$DATA_DIR/tender-areas.geojson" \
+    -drop fields="mapit_code" \
+    -clean \
+    -o precision="$PRECISION" "$DATA_DIR/postcode-units.geojson"

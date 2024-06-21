@@ -12,8 +12,10 @@ var renderTemplate = function(id, data){
     return _.template(document.getElementById(id).innerHTML)(data);
 };
 
-var quintileBand = function(percentage, band1, band2, band3, band4, band5) {
-    if ( percentage < 20 ) {
+var quintileBand = function(percentage, band1, band2, band3, band4, band5, noband) {
+    if ( ! _.isFinite(percentage) ) {
+        return noband;
+    } else if ( percentage < 20 ) {
         return band1;
     } else if ( percentage < 40 ) {
         return band2;
@@ -63,7 +65,7 @@ createApp({
             $.ajax({
                 type: 'GET',
                 dataType: 'json',
-                url: 'static/data/areas.geojson'
+                url: 'static/data/tender-areas.geojson'
             }).done(function(geojsonObj){
                 var layer = L.geoJSON(
                     geojsonObj.features,
@@ -110,16 +112,16 @@ createApp({
                     }
                 );
 
-                _this.dataLayers['areas'] = {
-                    id: 'areas',
+                _this.dataLayers['tender-areas'] = {
+                    id: 'tender-areas',
                     label: 'ENWL tender areas',
                     layer: layer
                 };
 
-                _this.showDataLayer('areas');
+                _this.showDataLayer('tender-areas');
 
                 toRaw(_this.map).fitBounds(
-                    _this.dataLayers['areas'].layer.getBounds()
+                    _this.dataLayers['tender-areas'].layer.getBounds()
                 );
             });
 
@@ -197,7 +199,8 @@ createApp({
                                     '#ffc100', // orange
                                     '#ffff00', // yellow
                                     '#d6ff00', // lime
-                                    '#63ff00'  // green
+                                    '#63ff00', // green
+                                    '#cccccc'  // grey for errors/missing data
                                 ),
                                 fillOpacity: 1
                             });
@@ -223,9 +226,59 @@ createApp({
 
             $.ajax({
                 type: 'GET',
+                dataType: 'json',
+                url: 'static/data/postcode-units.geojson'
+            }).done(function(geojsonObj){
+                var layer = L.geoJSON(
+                    geojsonObj.features,
+                    {
+                        style: {
+                            fillOpacity: 0.00001,
+                            color: "#000",
+                            weight: 1
+                        },
+                        onEachFeature: function(feature, layer){
+                            // NOTE: Click doesn’t work because there’s no fill
+                            layer.on({
+                                click: function(e){
+                                    console.log(feature.properties);
+                                },
+                                mouseover: function(e){
+                                    e.target.setStyle({
+                                        weight: 2,
+                                        fillOpacity: 0.1
+                                    });
+                                },
+                                mouseout: function(e){
+                                    e.target.setStyle({
+                                        weight: 1,
+                                        fillOpacity: 0.00001
+                                    });
+                                }
+                            });
+                            layer.bindTooltip('<small>' + feature.properties.postcodes + '</small>', {
+                                className: "pe-none" // prevent flicker when mousing over tooltip
+                            });
+                        }
+                    }
+                );
+
+                _this.dataLayers['postcode-units'] = {
+                    id: 'postcode-units',
+                    label: 'Postcode units',
+                    layer: layer
+                };
+            });
+
+            $.ajax({
+                type: 'GET',
                 dataType: 'text',
                 url: 'static/data/dumb-meters.csv'
             }).done(function(text){
+                var n = function(thing) {
+                    return Number(thing || 0);
+                };
+
                 var rows = Papa.parse(text, {
                     dynamicTyping: true,
                     header: true,
@@ -242,32 +295,47 @@ createApp({
                 _.each(
                     rows,
                     function(row){
-                        var latlng = L.latLng(row.lat, row.lon);
+                        var latlng = L.latLng(row.latlon.split(', '));
 
-                        var economy7_percent = Math.round(row.electricity_economy7_meters / row.electricity_all_meters * 100);
-                        var gas_percent = Math.round((row.gas_consumption_kwh - gasConsumptionMin) / gasConsumptionMax * 100);
+                        var economy7_percent = Math.round(
+                            n(row.electricity_economy7_meters) / n(row.electricity_all_meters) * 100
+                        );
+                        var gas_percent = Math.round(
+                            (n(row.gas_consumption_kwh) - n(gasConsumptionMin)) / n(gasConsumptionMax) * 100
+                        );
                         var gas_word = quintileBand(
                             gas_percent, // 0-100
                             'Very low',
                             'Low',
                             'Medium',
                             'High',
-                            'Very high'
+                            'Very high',
+                            'Unknown'
                         );
 
                         var electricLabel = renderTemplate('electric-meters-tooltip', {
                             postcode: row.postcode,
-                            meters: row.electricity_all_meters,
+                            tender_area: row.tender_area,
+                            meters: n(row.electricity_all_meters),
                             economy7_percent: economy7_percent,
-                            consumption: Math.round(row.electricity_all_consumption_kwh).toLocaleString(),
-                            mean_consumption: Math.round(row.electricity_all_consumption_kwh / row.electricity_all_meters).toLocaleString()
+                            consumption: Math.round(
+                                n(row.electricity_all_consumption_kwh)
+                            ).toLocaleString(),
+                            mean_consumption: Math.round(
+                                n(row.electricity_all_consumption_kwh) / n(row.electricity_all_meters)
+                            ).toLocaleString()
                         });
                         var gasLabel = renderTemplate('gas-meters-tooltip', {
                             postcode: row.postcode,
-                            meters: row.gas_meters,
+                            tender_area: row.tender_area,
+                            meters: n(row.gas_meters),
                             word: gas_word,
-                            consumption: Math.round(row.gas_consumption_kwh).toLocaleString(),
-                            mean_consumption: Math.round(row.gas_consumption_kwh / row.gas_meters).toLocaleString()
+                            consumption: Math.round(
+                                n(row.gas_consumption_kwh)
+                            ).toLocaleString(),
+                            mean_consumption: Math.round(
+                                n(row.gas_consumption_kwh) / n(row.gas_meters)
+                            ).toLocaleString()
                         });
 
                         L.polyMarker(latlng, {
@@ -280,7 +348,8 @@ createApp({
                                 '#ffc100', // orange
                                 '#ffff00', // yellow
                                 '#d6ff00', // lime
-                                '#63ff00'  // green
+                                '#63ff00', // green
+                                '#cccccc'  // grey for errors/missing data
                             ),
                             fillOpacity: 1
                         }).bindTooltip(electricLabel, {
@@ -297,7 +366,8 @@ createApp({
                                 '#ffc100', // orange
                                 '#ffff00', // yellow
                                 '#d6ff00', // lime
-                                '#63ff00'  // green
+                                '#63ff00', // green
+                                '#cccccc'  // grey for errors/missing data
                             ),
                             fillOpacity: 1
                         }).bindTooltip(gasLabel, {

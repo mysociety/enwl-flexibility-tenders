@@ -21,9 +21,9 @@ layout: default
 
 <template id="areas-tooltip">
     <strong class="d-block">[[= substation_name ]]</strong>
-    [[= pr_tenders ]] peak reduction tenders<br>
-    [[= ouva_tenders ]] OU+VA tenders<br>
-    [[= ou_tenders ]] OU tenders
+    [[= pr_tenders ]] peak reduction tenders
+    <br>[[= ouva_tenders ]] OU+VA tenders
+    <br>[[= ou_tenders ]] OU tenders
 </template>
 
 <template id="smart-meters-tooltip">
@@ -34,16 +34,22 @@ layout: default
 </template>
 
 <template id="electric-meters-tooltip">
-    <small class="d-block text-muted">[[= postcode ]]</small>
-    [[= meters ]] electricity meters<br>
-    ([[= economy7_percent ]]% Economy7)<br>
-    [[= consumption ]] kWh consumption<br>
-    ([[= mean_consumption ]] kWh per meter)
+    <small class="d-block text-muted">[[= postcode ]] ([[= tender_area ]])</small>
+    [[= meters ]] electricity meters
+  [[ if (_.isFinite(economy7_percent)) { ]]
+    <br>([[= economy7_percent ]]% Economy7)
+  [[ } ]]
+    <br>[[= consumption ]] kWh consumption
+  [[ if (_.isFinite(mean_consumption)) { ]]
+    <br>([[= mean_consumption ]] kWh per meter)
+  [[ } ]]
 </template>
 
 <template id="gas-meters-tooltip">
-    <small class="d-block text-muted">[[= postcode ]]</small>
-    [[= meters ]] gas meters<br>
-    [[= word ]] consumption, [[= consumption ]] kWh<br>
-    ([[= mean_consumption ]] kWh per meter)
+    <small class="d-block text-muted">[[= postcode ]] ([[= tender_area ]])</small>
+    [[= meters ]] gas meters
+    <br>[[= word ]] consumption, [[= consumption ]] kWh
+  [[ if (_.isFinite(mean_consumption)) { ]]
+    <br>([[= mean_consumption ]] kWh per meter)
+  [[ } ]]
 </template>
