@@ -54,6 +54,11 @@ createApp({
             _this.map = L.map(_this.$refs.map).setView([54.0934, -2.8948], 7);
             _this.visibleLayers = L.featureGroup().addTo(toRaw(_this.map));
 
+            _this.map.createPane('polygonPane');
+            _this.map.createPane('pointPane');
+            _this.map.getPane('polygonPane').style.zIndex = 300;
+            _this.map.getPane('pointPane').style.zIndex = 350;
+
             L.tileLayer(
                 'https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=7ac28b44c7414ced98cd4388437c718d',
                 {
@@ -70,6 +75,7 @@ createApp({
                 var layer = L.geoJSON(
                     geojsonObj.features,
                     {
+                        pane: 'polygonPane',
                         style: {
                             fillOpacity: 0.2,
                             color: "#FC832A"
@@ -136,6 +142,7 @@ createApp({
                         var layer = L.geoJSON(
                             group,
                             {
+                                pane: 'pointPane',
                                 pointToLayer: function(feature, latlng){
                                     return L.circleMarker(latlng, {
                                         fillOpacity: 0,
@@ -188,6 +195,7 @@ createApp({
                 var layer = L.geoJSON(
                     geojsonObj.features,
                     {
+                        pane: 'pointPane',
                         pointToLayer: function(feature, latlng){
                             return L.polyMarker(latlng, {
                                 marker: "D",
@@ -232,6 +240,7 @@ createApp({
                 var layer = L.geoJSON(
                     geojsonObj.features,
                     {
+                        pane: 'polygonPane',
                         style: {
                             fillOpacity: 0.00001,
                             color: "#000",
@@ -339,6 +348,7 @@ createApp({
                         });
 
                         L.polyMarker(latlng, {
+                            pane: 'pointPane',
                             marker: "^",
                             radius: 6,
                             stroke: false,
@@ -357,6 +367,7 @@ createApp({
                         }).addTo(electricLayer);
 
                         L.polyMarker(latlng, {
+                            pane: 'pointPane',
                             marker: "v",
                             radius: 6,
                             stroke: false,
