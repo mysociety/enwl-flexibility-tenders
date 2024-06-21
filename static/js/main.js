@@ -33,7 +33,34 @@ createApp({
     data() {
         return {
             map: null,
-            dataLayers: {}, // dataset details and Leaflet layers, keyed by dataset ID
+            dataLayers: [
+                {
+                    id: 'tender-areas',
+                    label: 'ENWL tender areas',
+                    layer: null
+                },
+                {
+                    id: 'postcode-units',
+                    label: 'Postcode units',
+                    layer: null
+                },
+                {
+                    id: 'smart-meters',
+                    label: 'ENWL smart meter adoption',
+                    layer: null
+                },
+                {
+                    id: 'electric-meters',
+                    label: 'Domestic electricity, 2022',
+                    layer: null
+                },
+                {
+                    id: 'gas-meters',
+                    label: 'Domestic gas, 2022',
+                    layer: null
+                }
+                // Carbon Co-op member data gets added later
+            ],
             visibleLayers: null // Leaflet.FeatureGroup
         }
     },
@@ -118,16 +145,11 @@ createApp({
                     }
                 );
 
-                _this.dataLayers['tender-areas'] = {
-                    id: 'tender-areas',
-                    label: 'ENWL tender areas',
-                    layer: layer
-                };
-
+                _this.getDataLayer('tender-areas').layer = layer;
                 _this.showDataLayer('tender-areas');
 
                 toRaw(_this.map).fitBounds(
-                    _this.dataLayers['tender-areas'].layer.getBounds()
+                    _this.getDataLayer('tender-areas').layer.getBounds()
                 );
             });
 
@@ -178,11 +200,12 @@ createApp({
                             }
                         );
 
-                        _this.dataLayers[category] = {
+                        _this.dataLayers.push({
                             id: category,
                             label: 'Carbon Co-op: ' + category,
                             layer: layer
-                        };
+                        });
+                        _this.getDataLayer(category).layer = layer;
                     }
                 );
             });
@@ -225,11 +248,7 @@ createApp({
                     }
                 );
 
-                _this.dataLayers['smart-meters'] = {
-                    id: 'smart-meters',
-                    label: 'ENWL smart meter adoption',
-                    layer: layer
-                };
+                _this.getDataLayer('smart-meters').layer = layer;
             });
 
             $.ajax({
@@ -272,11 +291,7 @@ createApp({
                     }
                 );
 
-                _this.dataLayers['postcode-units'] = {
-                    id: 'postcode-units',
-                    label: 'Postcode units',
-                    layer: layer
-                };
+                _this.getDataLayer('postcode-units').layer = layer;
             });
 
             $.ajax({
@@ -387,33 +402,49 @@ createApp({
                     }
                 );
 
-                _this.dataLayers['electric-meters'] = {
-                    id: 'electric-meters',
-                    label: 'Domestic electricity, 2022',
-                    layer: electricLayer
-                };
-
-                _this.dataLayers['gas-meters'] = {
-                    id: 'gas-meters',
-                    label: 'Domestic gas, 2022',
-                    layer: gasLayer
-                };
+                _this.getDataLayer('electric-meters').layer = electricLayer;
+                _this.getDataLayer('gas-meters').layer = gasLayer;
             });
+        },
+
+        getDataLayer(id){
+            var _this = this;
+            return _.findWhere(_this.dataLayers, {id: id});
         },
 
         hideDataLayer(id){
             var _this = this;
-            _this.dataLayers[id].layer.removeFrom(_this.visibleLayers);
+            _this.getDataLayer(id).layer.removeFrom(_this.visibleLayers);
         },
 
         showDataLayer(id){
             var _this = this;
-            _this.dataLayers[id].layer.addTo(_this.visibleLayers);
+            _this.getDataLayer(id).layer.addTo(_this.visibleLayers);
         },
 
         dataLayerIsVisible(id){
+            // console.log('dataLayerIsVisible', id);
             var _this = this;
-            return _this.visibleLayers.hasLayer( _this.dataLayers[id].layer );
+            var dataLayer = _this.getDataLayer(id);
+
+            if ( _.isNull(_this.visibleLayers) ) {
+                // console.log('_this.visibleLayers is Null');
+                return false;
+            } else if ( typeof dataLayer === 'undefined' ) {
+                // console.log('dataLayer', id, 'does not exist (yet?)');
+                return false;
+            } else if ( _.isNull(dataLayer.layer) ) {
+                // console.log('dataLayer', id, 'does not have a Leaflet layer (yet?)');
+                return false;
+            } else {
+                // console.log('_this.visibleLayers is not Null');
+                return _this.visibleLayers.hasLayer( _this.getDataLayer(id).layer );
+            }
+        },
+
+        dataLayerIsLoaded(id){
+            var _this = this;
+            return ! _.isNull(_this.getDataLayer(id).layer);
         },
 
         toggleDataLayer(id){

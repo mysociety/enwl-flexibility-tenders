@@ -11,7 +11,7 @@ layout: default
         <div class="flex-grow-0 flex-shrink-0 h-100 p-3 bg-light border-end">
             <h1 class="fs-6 text-muted mb-3">Datasets</h1>
             <div class="form-check mt-2" v-for="dataLayer in dataLayers">
-                <input class="form-check-input" type="checkbox" :checked="dataLayerIsVisible(dataLayer.id)" :id="`datalayer-${dataLayer.id}`" @change="toggleDataLayer(dataLayer.id)">
+                <input class="form-check-input" type="checkbox" :checked="dataLayerIsVisible(dataLayer.id)" :id="`datalayer-${dataLayer.id}`" @change="toggleDataLayer(dataLayer.id)" :disabled="!dataLayerIsLoaded(dataLayer.id)">
                 <label class="form-check-label" :for="`datalayer-${dataLayer.id}`">${dataLayer.label}</label>
             </div>
         </div>
