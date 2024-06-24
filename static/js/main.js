@@ -28,6 +28,10 @@ var quintileBand = function(percentage, band1, band2, band3, band4, band5, noban
     }
 };
 
+var n = function(thing) {
+    return Number(thing || 0);
+};
+
 createApp({
     delimiters: ["${", "}"], // avoid conflict with Jekyll `{{ }}` delimiters
     data() {
@@ -40,23 +44,146 @@ createApp({
                     layer: null
                 },
                 {
-                    id: 'postcode-units',
-                    label: 'Postcode units',
-                    layer: null
-                },
-                {
                     id: 'smart-meters',
                     label: 'ENWL smart meter adoption',
-                    layer: null
+                    layer: null,
                 },
                 {
-                    id: 'electric-meters',
-                    label: 'Domestic electricity, 2022',
-                    layer: null
-                },
-                {
-                    id: 'gas-meters',
-                    label: 'Domestic gas, 2022',
+                    id: 'dumb-meters',
+                    label: 'Electricity & Gas, 2022',
+                    shaders: [
+                        {
+                            id: 'none',
+                            label: 'No shading',
+                            getStyle: function(feature, dataLayer) {
+                                return {
+                                    color: '#3388ff'
+                                };
+                            }
+                        },
+                        {
+                            id: 'electricity_all_meters',
+                            label: 'Number of electricity meters',
+                            getStyle: function(feature, dataLayer) {
+                                var stat = dataLayer.stats['electricity_all_meters'];
+                                var pct = (n(feature.properties.electricity_all_meters) - n(stat.min)) / n(stat.max) * 100;
+
+                                return {
+                                    color: quintileBand(
+                                        pct, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        },
+                        {
+                            id: 'electricity_all_consumption_kwh',
+                            label: 'Total electricity consumption',
+                            getStyle: function(feature, dataLayer) {
+                                var stat = dataLayer.stats['electricity_all_consumption_kwh'];
+                                var pct = (n(feature.properties.electricity_all_consumption_kwh) - n(stat.min)) / n(stat.max) * 100;
+
+                                return {
+                                    color: quintileBand(
+                                        pct, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        },
+                        {
+                            id: 'electricity_economy7_meters',
+                            label: 'Number of Economy7 meters',
+                            getStyle: function(feature, dataLayer) {
+                                var stat = dataLayer.stats['electricity_economy7_meters'];
+                                var pct = (n(feature.properties.electricity_economy7_meters) - n(stat.min)) / n(stat.max) * 100;
+
+                                return {
+                                    color: quintileBand(
+                                        pct, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        },
+                        {
+                            id: 'economy7_percent',
+                            label: 'Proportion of meters that are Economy7',
+                            getStyle: function(feature, dataLayer) {
+                                var economy7_percent = Math.round(
+                                    n(feature.properties.electricity_economy7_meters) / n(feature.properties.electricity_all_meters) * 100
+                                );
+
+                                return {
+                                    color: quintileBand(
+                                        economy7_percent, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        },
+                        {
+                            id: 'gas_meters',
+                            label: 'Number of gas meters',
+                            getStyle: function(feature, dataLayer) {
+                                var stat = dataLayer.stats['gas_meters'];
+                                var pct = (n(feature.properties.gas_meters) - n(stat.min)) / n(stat.max) * 100;
+
+                                return {
+                                    color: quintileBand(
+                                        pct, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        },
+                        {
+                            id: 'gas_consumption_kwh',
+                            label: 'Total gas consumption',
+                            getStyle: function(feature, dataLayer) {
+                                var stat = dataLayer.stats['gas_consumption_kwh'];
+                                var pct = (n(feature.properties.gas_consumption_kwh) - n(stat.min)) / n(stat.max) * 100;
+
+                                return {
+                                    color: quintileBand(
+                                        pct, // 0-100
+                                        '#ff0000', // red
+                                        '#ffc100', // orange
+                                        '#ffff00', // yellow
+                                        '#d6ff00', // lime
+                                        '#63ff00', // green
+                                        '#999999'  // grey for errors/missing data
+                                    )
+                                };
+                            }
+                        }
+                    ],
+                    selectedShader: 'none',
                     layer: null
                 }
                 // Carbon Co-op member data gets added later
@@ -266,159 +393,107 @@ createApp({
                 _this.getDataLayer('smart-meters').layer = layer;
             });
 
-            $.ajax({
-                type: 'GET',
-                dataType: 'json',
-                url: 'static/data/postcode-units.geojson'
-            }).done(function(geojsonObj){
-                var layer = L.geoJSON(
-                    geojsonObj.features,
-                    {
-                        pane: 'polygonPane',
-                        style: {
-                            fillOpacity: 0.00001,
-                            color: "#000",
-                            weight: 1
-                        },
-                        onEachFeature: function(feature, layer){
-                            // NOTE: Click doesn’t work because there’s no fill
-                            layer.on({
-                                click: function(e){
-                                    console.log(feature.properties);
-                                },
-                                mouseover: function(e){
-                                    e.target.setStyle({
-                                        weight: 2,
-                                        fillOpacity: 0.1
-                                    });
-                                },
-                                mouseout: function(e){
-                                    e.target.setStyle({
-                                        weight: 1,
-                                        fillOpacity: 0.00001
-                                    });
-                                }
-                            });
-                            layer.bindTooltip('<small>' + feature.properties.postcodes + '</small>', {
-                                className: "pe-none" // prevent flicker when mousing over tooltip
-                            });
-                        }
-                    }
-                );
-
-                _this.getDataLayer('postcode-units').layer = layer;
-            });
-
-            $.ajax({
-                type: 'GET',
-                dataType: 'text',
-                url: 'static/data/dumb-meters.csv'
-            }).done(function(text){
-                var n = function(thing) {
-                    return Number(thing || 0);
-                };
-
-                var rows = Papa.parse(text, {
+            $.when(
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: 'static/data/postcode-units.geojson'
+                }),
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'text',
+                    url: 'static/data/dumb-meters.csv'
+                })
+            ).done(function(responseObj1, responseObj2){
+                var meters = Papa.parse(responseObj2[0], {
                     dynamicTyping: true,
                     header: true,
                     skipEmptyLines: true
                 }).data;
 
-                var electricLayer = L.layerGroup();
-                var gasLayer = L.layerGroup();
+                var layer = L.geoJSON(
+                    responseObj1[0].features,
+                    {
+                        pane: 'polygonPane',
+                        style: {
+                            color: '#3388ff',
+                            weight: 1,
+                            fillOpacity: 0.2
+                        },
+                        onEachFeature: function(feature, layer){
+                            // Enrich GeoJSON feature properties with data from CSV,
+                            // to make data easier to work with in Leaflet.GeoJSON.eachLayer
+                            feature.properties = _.extend(
+                                feature.properties,
+                                _.findWhere(
+                                    meters,
+                                    { postcode: feature.properties.postcodes }
+                                )
+                            );
 
-                var gasConsumption = _.pluck(rows, 'gas_consumption_kwh');
-                var gasConsumptionMin = _.min(gasConsumption);
-                var gasConsumptionMax = _.max(gasConsumption);
+                            var label = renderTemplate('dumb-meters-tooltip', {
+                                postcode: feature.properties.postcode || feature.properties.postcodes,
+                                tender_area: feature.properties.tender_area,
+                                electricity_meters: n(feature.properties.electricity_all_meters),
+                                economy7_percent: Math.round(
+                                    n(feature.properties.electricity_economy7_meters) / n(feature.properties.electricity_all_meters) * 100
+                                ),
+                                electricity_consumption: Math.round(
+                                    n(feature.properties.electricity_all_consumption_kwh)
+                                ).toLocaleString(),
+                                electricity_mean_consumption: Math.round(
+                                    n(feature.properties.electricity_all_consumption_kwh) / n(feature.properties.electricity_all_meters)
+                                ).toLocaleString(),
+                                gas_meters: n(feature.properties.gas_meters),
+                                gas_consumption: Math.round(
+                                    n(feature.properties.gas_consumption_kwh)
+                                ).toLocaleString(),
+                                gas_mean_consumption: Math.round(
+                                    n(feature.properties.gas_consumption_kwh) / n(feature.properties.gas_meters)
+                                ).toLocaleString()
+                            });
 
-                _.each(
-                    rows,
-                    function(row){
-                        var latlng = L.latLng(row.latlon.split(', '));
+                            layer.bindTooltip(label, {
+                                className: "pe-none" // prevent flicker when mousing over tooltip
+                            });
 
-                        var economy7_percent = Math.round(
-                            n(row.electricity_economy7_meters) / n(row.electricity_all_meters) * 100
-                        );
-                        var gas_percent = Math.round(
-                            (n(row.gas_consumption_kwh) - n(gasConsumptionMin)) / n(gasConsumptionMax) * 100
-                        );
-                        var gas_word = quintileBand(
-                            gas_percent, // 0-100
-                            'Very low',
-                            'Low',
-                            'Medium',
-                            'High',
-                            'Very high',
-                            'Unknown'
-                        );
-
-                        var electricLabel = renderTemplate('electric-meters-tooltip', {
-                            postcode: row.postcode,
-                            tender_area: row.tender_area,
-                            meters: n(row.electricity_all_meters),
-                            economy7_percent: economy7_percent,
-                            consumption: Math.round(
-                                n(row.electricity_all_consumption_kwh)
-                            ).toLocaleString(),
-                            mean_consumption: Math.round(
-                                n(row.electricity_all_consumption_kwh) / n(row.electricity_all_meters)
-                            ).toLocaleString()
-                        });
-                        var gasLabel = renderTemplate('gas-meters-tooltip', {
-                            postcode: row.postcode,
-                            tender_area: row.tender_area,
-                            meters: n(row.gas_meters),
-                            word: gas_word,
-                            consumption: Math.round(
-                                n(row.gas_consumption_kwh)
-                            ).toLocaleString(),
-                            mean_consumption: Math.round(
-                                n(row.gas_consumption_kwh) / n(row.gas_meters)
-                            ).toLocaleString()
-                        });
-
-                        L.polyMarker(latlng, {
-                            pane: 'pointPane',
-                            marker: "^",
-                            radius: 6,
-                            stroke: false,
-                            fillColor: quintileBand(
-                                economy7_percent, // 0-100
-                                '#ff0000', // red
-                                '#ffc100', // orange
-                                '#ffff00', // yellow
-                                '#d6ff00', // lime
-                                '#63ff00', // green
-                                '#cccccc'  // grey for errors/missing data
-                            ),
-                            fillOpacity: 1
-                        }).bindTooltip(electricLabel, {
-                            className: "pe-none" // prevent flicker when mousing over tooltip
-                        }).addTo(electricLayer);
-
-                        L.polyMarker(latlng, {
-                            pane: 'pointPane',
-                            marker: "v",
-                            radius: 6,
-                            stroke: false,
-                            fillColor: quintileBand(
-                                gas_percent, // 0-100
-                                '#ff0000', // red
-                                '#ffc100', // orange
-                                '#ffff00', // yellow
-                                '#d6ff00', // lime
-                                '#63ff00', // green
-                                '#cccccc'  // grey for errors/missing data
-                            ),
-                            fillOpacity: 1
-                        }).bindTooltip(gasLabel, {
-                            className: "pe-none" // prevent flicker when mousing over tooltip
-                        }).addTo(gasLayer);
+                            layer.on({
+                                mouseover: function(e){
+                                    e.target.setStyle({
+                                        weight: 2,
+                                        fillOpacity: 0.4
+                                    });
+                                },
+                                mouseout: function(e){
+                                    e.target.setStyle({
+                                        weight: 1,
+                                        fillOpacity: 0.2
+                                    });
+                                }
+                            });
+                        }
                     }
                 );
 
-                _this.getDataLayer('electric-meters').layer = electricLayer;
-                _this.getDataLayer('gas-meters').layer = gasLayer;
+                var dataLayer = _this.getDataLayer('dumb-meters');
+                dataLayer.layer = layer;
+
+                // Create min/max stats and save them to the layer,
+                // so they're available to shaders later on
+                dataLayer.stats = {};
+                _.each([
+                    'electricity_all_meters',
+                    'electricity_all_consumption_kwh',
+                    'electricity_economy7_meters',
+                    'gas_meters',
+                    'gas_consumption_kwh'
+                ], function(field){
+                    var values = _.pluck(meters, field);
+                    dataLayer.stats[field] = {
+                        min: _.min(values),
+                        max: _.max(values)
+                    };
+                });
             });
         },
 
@@ -469,6 +544,21 @@ createApp({
             } else {
                 _this.showDataLayer(id);
             }
+        },
+
+        onDataLayerShaderSelect($event, dataLayerId) {
+            var _this = this;
+            var dataLayer = _this.getDataLayer(dataLayerId);
+            var shader = _.findWhere(
+                toRaw(dataLayer).shaders,
+                { id: $event.target.value }
+            );
+
+            dataLayer.layer.eachLayer(function(layer){
+                layer.setStyle(
+                    shader.getStyle(layer.feature, dataLayer)
+                );
+            });
         }
     }
 }).mount('#app');

@@ -10,10 +10,17 @@ layout: default
     <div class="d-flex h-100">
         <div class="flex-grow-0 flex-shrink-0 h-100 p-3 bg-light border-end">
             <h1 class="fs-6 text-muted mb-3">Datasets</h1>
-            <div class="form-check mt-2" v-for="dataLayer in dataLayers">
-                <input class="form-check-input" type="checkbox" :checked="dataLayerIsVisible(dataLayer.id)" :id="`datalayer-${dataLayer.id}`" @change="toggleDataLayer(dataLayer.id)" :disabled="!dataLayerIsLoaded(dataLayer.id)">
-                <label class="form-check-label" :for="`datalayer-${dataLayer.id}`">${dataLayer.label}</label>
-            </div>
+            <template v-for="dataLayer in dataLayers">
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" :checked="dataLayerIsVisible(dataLayer.id)" :id="`datalayer-${dataLayer.id}`" @change="toggleDataLayer(dataLayer.id)" :disabled="!dataLayerIsLoaded(dataLayer.id)">
+                    <label class="form-check-label" :for="`datalayer-${dataLayer.id}`">${dataLayer.label}</label>
+                </div>
+                <div class="mt-2 mb-3 ms-4" v-if="dataLayerIsVisible(dataLayer.id) && dataLayer.shaders">
+                    <select class="form-select form-select-sm" aria-label="Shader" @change="onDataLayerShaderSelect($event, dataLayer.id)">
+                        <option v-for="shader in dataLayer.shaders" :selected="dataLayer.activeShader === shader.id" :value="`${shader.id}`">${shader.label}</option>
+                    </select>
+                </div>
+            </template>
         </div>
         <div ref="map" class="w-100 h-100"></div>
     </div>
@@ -33,23 +40,28 @@ layout: default
     ([[= sm_installation ]]%) have a smart meter
 </template>
 
-<template id="electric-meters-tooltip">
-    <small class="d-block text-muted">[[= postcode ]] ([[= tender_area ]])</small>
-    [[= meters ]] electricity meters
-  [[ if (_.isFinite(economy7_percent)) { ]]
-    <br>([[= economy7_percent ]]% Economy7)
-  [[ } ]]
-    <br>[[= consumption ]] kWh consumption
-  [[ if (_.isFinite(mean_consumption)) { ]]
-    <br>([[= mean_consumption ]] kWh per meter)
-  [[ } ]]
-</template>
-
-<template id="gas-meters-tooltip">
-    <small class="d-block text-muted">[[= postcode ]] ([[= tender_area ]])</small>
-    [[= meters ]] gas meters
-    <br>[[= word ]] consumption, [[= consumption ]] kWh
-  [[ if (_.isFinite(mean_consumption)) { ]]
-    <br>([[= mean_consumption ]] kWh per meter)
-  [[ } ]]
+<template id="dumb-meters-tooltip">
+    <small class="d-block text-muted">
+        [[= postcode ]]
+      [[ if (tender_area) { ]]
+        ([[= tender_area ]])
+      [[ } ]]
+    </small>
+    <strong class="d-block mt-2">[[= electricity_meters ]] electricity meters</strong>
+    <ul class="list-unstyled mb-0">
+      [[ if (_.isFinite(economy7_percent)) { ]]
+        <li>([[= economy7_percent ]]% Economy7)</li>
+      [[ } ]]
+        <li>[[= electricity_consumption ]] kWh consumption</li>
+      [[ if (_.isFinite(electricity_mean_consumption)) { ]]
+        <li>([[= electricity_mean_consumption ]] kWh per meter)</li>
+      [[ } ]]
+    </ul>
+    <strong class="d-block mt-2">[[= gas_meters ]] gas meters</strong>
+    <ul class="list-unstyled mb-0">
+        <li>[[= gas_consumption ]] kWh consumption</li>
+      [[ if (_.isFinite(gas_mean_consumption)) { ]]
+        <li>([[= gas_mean_consumption ]] kWh per meter)</li>
+      [[ } ]]
+    </ul>
 </template>
