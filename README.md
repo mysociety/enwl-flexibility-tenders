@@ -31,19 +31,49 @@ You can build the site to `_site` (without serving it) with:
 
     script/build
 
+## Regenerating tenders.csv
+
+`static/data/tenders.csv` is a simplified copy of the [tender requirements CSV provided by ENWL](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/).
+
+To recreate it, you’ll need to:
+
+- [Download ENWL’s tender requirements CSV](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/) – let’s call it `enwl-flexibility-tender-postcode-data.csv`
+- Install `csvfilter` to extract just the columns we need from `enwl-flexibility-tender-postcode-data.csv` (annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
+
+       pipx install "git+https://github.com/lk-jeffpeck/csvfilter.git@ec433f14330fbbf5d41f56febfeedac22868a949"
+
+Then use `csvfilter` to pick out just the columns we need, into `static/data/tenders.csv`:
+
+    csvfilter -f 2,3,5,6,7,8,9,10,11,12,17,18,19,20,21,22,23 enwl-flexibility-tender-postcode-data.csv > static/data/tenders.csv
+
 ## Regenerating tender-areas.geojson
 
-`static/js/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round), in the Greater Manchester area.
+`static/data/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round) that we’re interested in, in the Greater Manchester area.
 
-[ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (if a substation area has multiple tenders at different times, it is represented by multiple identical polygons). For simplicity, we deduplicate these polygons, with `script/generate-tender-areas-geojson`.
+[ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (the same area can have multiple tenders of different types at different times). For simplicity, we deduplicate these polygons, with `script/generate-tender-areas`.
 
-To regenerate `tender-areas.geojson`, you will need:
+To regenerate `tender-areas.geojson`, you will need to:
 
-- [Node.js](https://nodejs.org)
+- Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
+- Download the GeoJSON file of [ENWL tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/)
 
-Then (assuming you’ve downloaded the ENWL GeoJSON to `./enwl-flexibility-tenders.geojson`) run:
+Then run `script/generate-tender-areas` to output just the tender areas we care about, to `static/data/tender-areas.geojson`:
 
-    script/generate-tender-areas enwl-flexibility-tenders.geojson > static/js/tender-areas.geojson
+    script/generate-tender-areas /path/to/enwl-flexibility-tenders.geojson
+
+## Regenerating postcode-units.geojson
+
+`static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas (see `tender-areas.geojson` above), based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
+
+To regenerate them, you’ll first need to:
+
+- Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
+- Generate `static/data/areas.geojson` using `script/generate-tender-areas`, as described above
+- Download and unarchive [Mark Longair’s postcode boundaries data](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/) (approx 1 GB download, 4.25 GB once unarchived)
+
+Then, with these things in place, you can run `script/generate-postcode-units`, passing in the path to the `units` directory inside Mark’s data, to output just the boundaries we need to `static/data/postcode-units.geojson`:
+
+    script/generate-postcode-units /path/to/gb-postcodes-v5/units
 
 ## Regenerating dumb-meters.csv
 
@@ -167,17 +197,3 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
         tender_area in ('FREDERICK RD GRID', 'MARPLE', 'MOSS LN', 'MOSS SIDE');
     .output stdout
     .mode columns
-
-## Regenerating postcode-units.geojson
-
-`static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas, based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
-
-To regenerate them, you’ll first need to:
-
-- Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
-- Generate `static/data/areas.geojson` using `script/generate-tender-areas`, as described above
-- Download and unarchive [Mark Longair’s postcode boundaries data](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/) (approx 1 GB download, 4.25 GB once unarchived)
-
-Then, with these things in place, you can run `script/generate-postcode-units`, passing in the path to the `units` directory inside Mark’s data, to output just the boundaries we need to `static/data/postcode-units.geojson`:
-
-    script/generate-postcode-units /path/to/gb-postcodes-v5/units

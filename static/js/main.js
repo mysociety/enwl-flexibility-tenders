@@ -94,13 +94,26 @@ createApp({
                 }
             ).addTo(toRaw(_this.map));
 
-            $.ajax({
-                type: 'GET',
-                dataType: 'json',
-                url: 'static/data/tender-areas.geojson'
-            }).done(function(geojsonObj){
+            $.when(
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: 'static/data/tender-areas.geojson'
+                }),
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'text',
+                    url: 'static/data/tenders.csv'
+                }),
+            ).done(function(responseObj1, responseObj2){
+                var tenders = Papa.parse(responseObj2[0], {
+                    dynamicTyping: true,
+                    header: true,
+                    skipEmptyLines: true
+                }).data;
+
                 var layer = L.geoJSON(
-                    geojsonObj.features,
+                    responseObj1[0].features,
                     {
                         pane: 'polygonPane',
                         style: {
@@ -109,19 +122,19 @@ createApp({
                         },
                         onEachFeature: function(feature, layer){
                             var label = renderTemplate('areas-tooltip', {
-                                substation_name: feature.properties.tenders[0].substation_name,
-                                pr_tenders: _.where(
-                                    feature.properties.tenders,
-                                    { need_type: 'Peak Reduction' }
-                                ).length,
-                                ou_tenders: _.where(
-                                    feature.properties.tenders,
-                                    { need_type: 'Operational Utilisation' }
-                                ).length,
-                                ouva_tenders: _.where(
-                                    feature.properties.tenders,
-                                    { need_type: 'Operational Utilisation Variable Availability'}
-                                ).length
+                                substation_name: feature.properties.substation_name,
+                                pr_tenders: _.where(tenders, {
+                                    Substation_Name: feature.properties.substation_name,
+                                    Need_Type: 'Peak Reduction'
+                                }).length,
+                                ou_tenders: _.where(tenders, {
+                                    Substation_Name: feature.properties.substation_name,
+                                    Need_Type: 'Operational Utilisation'
+                                }).length,
+                                ouva_tenders: _.where(tenders, {
+                                    Substation_Name: feature.properties.substation_name,
+                                    Need_Type: 'Operational Utilisation Variable Availability'
+                                }).length
                             });
                             layer.on('mouseover', function(e){
                                 this.setStyle({ fillOpacity: 0.4 });
@@ -135,7 +148,9 @@ createApp({
                                 this.closeTooltip();
                             });
                             layer.on('click', function(e){
-                                console.log(feature.properties);
+                                console.log(_.where(tenders, {
+                                    Substation_Name: feature.properties.substation_name
+                                }));
                                 this.openTooltip(e.latlng);
                             });
                             layer.bindTooltip(label, {
