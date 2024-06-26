@@ -15,6 +15,8 @@ var renderTemplate = function(id, data){
 var quintileBand = function(percentage, band1, band2, band3, band4, band5, noband) {
     if ( ! _.isFinite(percentage) ) {
         return noband;
+    } else if ( percentage <= 0 ) {
+        return noband;
     } else if ( percentage < 20 ) {
         return band1;
     } else if ( percentage < 40 ) {
@@ -458,6 +460,9 @@ createApp({
                             });
 
                             layer.on({
+                                click: function(e){
+                                    console.log(feature.properties);
+                                },
                                 mouseover: function(e){
                                     e.target.setStyle({
                                         weight: 2,
