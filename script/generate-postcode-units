@@ -31,4 +31,5 @@ mapshaper \
     -clip "$DATA_DIR/tender-areas.geojson" \
     -drop fields="mapit_code" \
     -clean allow-overlaps \
-    -o precision="$PRECISION" "$DATA_DIR/postcode-units.geojson"
+    -o precision="$PRECISION" "$DATA_DIR/postcode-units.geojson" \
+    -o format="csv" "$DATA_DIR/postcode-units.csv"

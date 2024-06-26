@@ -61,11 +61,13 @@ Then run `script/generate-tender-areas` to output just the tender areas we care 
 
     script/generate-tender-areas /path/to/enwl-flexibility-tenders.geojson
 
-## Regenerating postcode-units.geojson
+## Regenerating postcode-units.geojson and postcode-units.csv
 
 `static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas (see `tender-areas.geojson` above), based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
 
-To regenerate them, you’ll first need to:
+`static/data/postcode-units.csv` contains a single column of just the postcodes from these postcode units, and is used when generating `dumb-meters.csv`, below.
+
+To regenerate the `postcode-units*` files, you’ll first need to:
 
 - Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
 - Generate `static/data/areas.geojson` using `script/generate-tender-areas`, as described above
@@ -77,22 +79,18 @@ Then, with these things in place, you can run `script/generate-postcode-units`, 
 
 ## Regenerating dumb-meters.csv
 
-`static/data/dumb-meters.csv` is a CSV of data about electricity and gas meters and consumption, per postcode in ENWL tender areas.
+`static/data/dumb-meters.csv` is a CSV of data about electricity and gas meters and consumption, per postcode in the `postcode-units.csv` file we generated above. (We’d like to have used [ENWL’s Flexibility Tender Postcode Data](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-postcode-data/information/), to include just postcodes we _know_ are in a tender area, but that CSV seems to be missing about 50% of postcodes that are clearly within the tender area boundaries. No idea why.)
 
 To recreate it, you’ll need to download:
 
-- `enwl-flexibility-tender-postcode-data.csv` – [ENWL Flexibility Tender - Postcode Data](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-postcode-data/information/)
 - `Postcode_level_all_meters_electricity_2022.csv` – [Postcode-level all domestic meters electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_standard_electricity_2022.csv` – [Postcode-level standard domestic electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_economy_7_electricity_2022.csv` – [Postcode-level Economy 7 domestic electricity 2022](https://www.gov.uk/government/statistics/postcode-level-electricity-statistics-2022), Open Government Licensed
 - `Postcode_level_gas_2022.csv` – [Postcode-level domestic gas 2022](https://www.gov.uk/government/statistics/postcode-level-gas-statistics-2022), Open Government Licensed
 
-I used the Python program `csvfilter` to extract just the columns I needed from `enwl-flexibility-tender-postcode-data.csv` (but annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
+You’ll also need to have generated a `postcode-units.csv` file, as described above.
 
-    pipx install "git+https://github.com/lk-jeffpeck/csvfilter.git@ec433f14330fbbf5d41f56febfeedac22868a949"
-    csvfilter -f 1,2,5 enwl-flexibility-tender-postcode-data.csv > enwl-postcode-latlon.csv
-
-I then created a SQLite3 database to munge the data together into:
+Now you can create a SQLite3 database to munge the data together into:
 
     sqlite3 dumb-meters.sqlite
 
@@ -102,7 +100,7 @@ From here on, everything is done from inside the SQLite command prompt. First, c
     create table electricity_standard(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table electricity_economy7(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table gas(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
-    create table postcodes(postcode, tender_area, latlon);
+    create table postcodes(postcode);
 
     create index idx_electricity_all_postcode on electricity_all (postcode);
     create index idx_electricity_standard_postcode on electricity_standard (postcode);
@@ -110,14 +108,14 @@ From here on, everything is done from inside the SQLite command prompt. First, c
     create index idx_gas_postcode on gas (postcode);
     create index idx_postcodes_postcode on postcodes (postcode);
 
-Then importing the data:
+Then importing the data (note, you may need to modify the paths to these CSV files!):
 
     .mode csv
     .import --skip 1 Postcode_level_all_meters_electricity_2022.csv electricity_all
     .import --skip 1 Postcode_level_standard_electricity_2022.csv electricity_standard
     .import --skip 1 Postcode_level_economy_7_electricity_2022.csv electricity_economy7
     .import --skip 1 Postcode_level_gas_2022.csv gas
-    .import --skip 1 enwl-postcode-latlon.csv postcodes
+    .import --skip 1 postcode-units.csv postcodes
     .mode columns
 
 Then removing some rows we don’t need (technically this is optional, but it makes things simpler later on):
@@ -154,8 +152,6 @@ Then creating a SQL view that joins all the tables together, picking just locati
     as
         select
             postcodes.postcode,
-            postcodes.tender_area,
-            postcodes.latlon,
             electricity_all.num_meters as "electricity_all_meters",
             electricity_all.total_cons_kwh as "electricity_all_consumption_kwh",
             electricity_standard.num_meters as "electricity_standard_meters",
@@ -175,14 +171,12 @@ Then creating a SQL view that joins all the tables together, picking just locati
         left join
             gas on electricity_all.pc = gas.pc;
 
-Then exporting data from just the required tender areas (Moss Lane, Moss Side, Frederick Rd BSP, and Marple) to a CSV:
+Then exporting data to a CSV, with the numbers all rounded, to reduce the filesize a little (note, again, you may need to modify the path you’d like the CSV file output to):
 
     .mode csv
-    .output dumb-meters.csv
+    .output ../static/data/dumb-meters.csv
     select
         postcode,
-        tender_area,
-        latlon,
         electricity_all_meters,
         cast(round(electricity_all_consumption_kwh) as int) as "electricity_all_consumption_kwh",
         electricity_standard_meters,
@@ -192,8 +186,6 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
         gas_meters,
         cast(round(gas_consumption_kwh) as int) as "gas_consumption_kwh"
     from
-        combined
-    where
-        tender_area in ('FREDERICK RD GRID', 'MARPLE', 'MOSS LN', 'MOSS SIDE');
+        combined;
     .output stdout
     .mode columns
