@@ -90,7 +90,7 @@ To recreate it, you’ll need to download:
 I used the Python program `csvfilter` to extract just the columns I needed from `enwl-flexibility-tender-postcode-data.csv` (but annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
 
     pipx install "git+https://github.com/lk-jeffpeck/csvfilter.git@ec433f14330fbbf5d41f56febfeedac22868a949"
-    csvfilter -f 1,2,5 enwl-flexibility-tender-postcode-data.csv > enwl-postcode-latlon.csv
+    csvfilter -f 0,1 enwl-flexibility-tender-postcode-data.csv > enwl-postcodes.csv
 
 I then created a SQLite3 database to munge the data together into:
 
@@ -102,7 +102,7 @@ From here on, everything is done from inside the SQLite command prompt. First, c
     create table electricity_standard(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table electricity_economy7(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
     create table gas(outcode, postcode, num_meters, total_cons_kwh, mean_cons_kwh, median_cons_kwh);
-    create table postcodes(postcode, tender_area, latlon);
+    create table postcodes(postcode, tender_area);
 
     create index idx_electricity_all_postcode on electricity_all (postcode);
     create index idx_electricity_standard_postcode on electricity_standard (postcode);
@@ -117,7 +117,7 @@ Then importing the data:
     .import --skip 1 Postcode_level_standard_electricity_2022.csv electricity_standard
     .import --skip 1 Postcode_level_economy_7_electricity_2022.csv electricity_economy7
     .import --skip 1 Postcode_level_gas_2022.csv gas
-    .import --skip 1 enwl-postcode-latlon.csv postcodes
+    .import --skip 1 enwl-postcodes.csv postcodes
     .mode columns
 
 Then removing some rows we don’t need (technically this is optional, but it makes things simpler later on):
@@ -155,15 +155,22 @@ Then creating a SQL view that joins all the tables together, picking just locati
         select
             postcodes.postcode,
             postcodes.tender_area,
-            postcodes.latlon,
             electricity_all.num_meters as "electricity_all_meters",
             electricity_all.total_cons_kwh as "electricity_all_consumption_kwh",
+            electricity_all.mean_cons_kwh as "electricity_all_mean_cons_kwh",
+            electricity_all.median_cons_kwh as "electricity_all_median_cons_kwh",
             electricity_standard.num_meters as "electricity_standard_meters",
             electricity_standard.total_cons_kwh as "electricity_standard_consumption_kwh",
+            electricity_standard.mean_cons_kwh as "electricity_standard_mean_cons_kwh",
+            electricity_standard.median_cons_kwh as "electricity_standard_median_cons_kwh",
             electricity_economy7.num_meters as "electricity_economy7_meters",
             electricity_economy7.total_cons_kwh as "electricity_economy7_consumption_kwh",
+            electricity_economy7.mean_cons_kwh as "electricity_economy7_mean_cons_kwh",
+            electricity_economy7.median_cons_kwh as "electricity_economy7_median_cons_kwh",
             gas.num_meters as "gas_meters",
-            gas.total_cons_kwh as "gas_consumption_kwh"
+            gas.total_cons_kwh as "gas_consumption_kwh",
+            gas.mean_cons_kwh as "gas_mean_cons_kwh",
+            gas.median_cons_kwh as "gas_median_cons_kwh"
         from
             postcodes
         left join
@@ -178,19 +185,26 @@ Then creating a SQL view that joins all the tables together, picking just locati
 Then exporting data from just the required tender areas (Moss Lane, Moss Side, Frederick Rd BSP, and Marple) to a CSV:
 
     .mode csv
-    .output dumb-meters.csv
+    .output ../static/data/dumb-meters.csv
     select
         postcode,
         tender_area,
-        latlon,
         electricity_all_meters,
         cast(round(electricity_all_consumption_kwh) as int) as "electricity_all_consumption_kwh",
+        cast(round(electricity_all_mean_cons_kwh) as int) as "electricity_all_mean_cons_kwh",
+        cast(round(electricity_all_median_cons_kwh) as int) as "electricity_all_median_cons_kwh",
         electricity_standard_meters,
         cast(round(electricity_standard_consumption_kwh) as int) as "electricity_standard_consumption_kwh",
+        cast(round(electricity_standard_mean_cons_kwh) as int) as "electricity_standard_mean_cons_kwh",
+        cast(round(electricity_standard_median_cons_kwh) as int) as "electricity_standard_median_cons_kwh",
         electricity_economy7_meters,
         cast(round(electricity_economy7_consumption_kwh) as int) as "electricity_economy7_consumption_kwh",
+        cast(round(electricity_economy7_mean_cons_kwh) as int) as "electricity_economy7_mean_cons_kwh",
+        cast(round(electricity_economy7_median_cons_kwh) as int) as "electricity_economy7_median_cons_kwh",
         gas_meters,
-        cast(round(gas_consumption_kwh) as int) as "gas_consumption_kwh"
+        cast(round(gas_consumption_kwh) as int) as "gas_consumption_kwh",
+        cast(round(gas_mean_cons_kwh) as int) as "gas_mean_cons_kwh",
+        cast(round(gas_median_cons_kwh) as int) as "gas_median_cons_kwh"
     from
         combined
     where
