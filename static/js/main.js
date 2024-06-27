@@ -39,6 +39,10 @@ createApp({
     data() {
         return {
             map: null,
+            inspector: {
+                label: null,
+                records: []
+            },
             dataLayers: [
                 {
                     id: 'tender-areas',
@@ -277,10 +281,12 @@ createApp({
                                 this.closeTooltip();
                             });
                             layer.on('click', function(e){
-                                console.log(_.where(tenders, {
-                                    Substation_Name: feature.properties.substation_name
-                                }));
-                                this.openTooltip(e.latlng);
+                                _this.inspector = {
+                                    label: feature.properties.substation_name,
+                                    records: _.where(tenders, {
+                                        Substation_Name: feature.properties.substation_name
+                                    })
+                                };
                             });
                             layer.bindTooltip(label, {
                                 className: "pe-none" // prevent flicker when mousing over tooltip
@@ -335,7 +341,10 @@ createApp({
                                         var label = feature.properties.category;
                                     }
                                     layer.on('click', function(e){
-                                        console.log(feature.properties);
+                                        _this.inspector = {
+                                            label: label,
+                                            records: [ feature.properties ]
+                                        };
                                     });
                                     layer.bindTooltip(label, {
                                         className: "pe-none" // prevent flicker when mousing over tooltip
@@ -383,7 +392,10 @@ createApp({
                         onEachFeature: function(feature, layer){
                             var label = renderTemplate('smart-meters-tooltip', feature.properties);
                             layer.on('click', function(e){
-                                console.log(feature.properties);
+                                _this.inspector = {
+                                    label: 'Substation ' + feature.properties.dist_number,
+                                    records: [ feature.properties ]
+                                };
                             });
                             layer.bindTooltip(label, {
                                 className: "pe-none" // prevent flicker when mousing over tooltip
@@ -461,7 +473,10 @@ createApp({
 
                             layer.on({
                                 click: function(e){
-                                    console.log(feature.properties);
+                                    _this.inspector = {
+                                        label: feature.properties.postcode || feature.properties.postcodes,
+                                        records: [ feature.properties ]
+                                    };
                                 },
                                 mouseover: function(e){
                                     e.target.setStyle({
@@ -564,6 +579,14 @@ createApp({
                     shader.getStyle(layer.feature, dataLayer)
                 );
             });
+        },
+
+        clearInspector() {
+            var _this = this;
+            _this.inspector = {
+                label: null,
+                records: []
+            };
         }
     }
 }).mount('#app');

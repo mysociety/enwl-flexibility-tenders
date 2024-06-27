@@ -1,0 +1,66 @@
+.app-wrapper {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    display: grid;
+    grid-template-columns: 20em 1fr max-content;
+    grid-template-rows: 4em 1fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+        "header header header"
+        "sources map inspector";
+}
+
+.app-header {
+    grid-area: header;
+
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 1rem;
+
+    padding: 1rem;
+    background: white;
+    border-bottom: var(--#{$prefix}border-width) var(--#{$prefix}border-style) var(--#{$prefix}border-color);
+
+    svg.site-logo {
+        width: auto;
+        max-height: 30px;
+    }
+}
+
+.app-sources {
+    grid-area: sources;
+
+    padding: 1rem;
+    --#{$prefix}bg-opacity: 1;
+    background-color: rgba(var(--#{$prefix}light-rgb), var(--#{$prefix}bg-opacity));
+    border-right: var(--#{$prefix}border-width) var(--#{$prefix}border-style) var(--#{$prefix}border-color);
+}
+
+.app-map {
+    grid-area: map;
+}
+
+.app-inspector {
+    grid-area: inspector;
+    overflow: auto;
+
+    padding: 1rem;
+    --#{$prefix}bg-opacity: 1;
+    background-color: rgba(var(--#{$prefix}light-rgb), var(--#{$prefix}bg-opacity));
+    border-left: var(--#{$prefix}border-width) var(--#{$prefix}border-style) var(--#{$prefix}border-color);
+
+    header {
+        position: sticky;
+        top: -1rem;
+        z-index: 1;
+        margin: -1rem;
+        padding: 1rem;
+        background: transparent linear-gradient(to bottom, rgba(var(--bs-light-rgb), 1) 66%, rgba(var(--bs-light-rgb), 0));
+    }
+}
