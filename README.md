@@ -61,6 +61,8 @@ Then run `script/generate-tender-areas` to output just the tender areas we care 
 
     script/generate-tender-areas /path/to/enwl-flexibility-tenders.geojson
 
+**NOTE:** If you change the list of tender areas that you’re interested in, you’ll also want to change the hand-picked postcode units in `script/generate-postcode-units`, and the `where tender_area` clause in the `dumb-meters.csv` SQL below.
+
 ## Regenerating postcode-units.geojson
 
 `static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas (see `tender-areas.geojson` above), based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
@@ -74,6 +76,8 @@ To regenerate them, you’ll first need to:
 Then, with these things in place, you can run `script/generate-postcode-units`, passing in the path to the `units` directory inside Mark’s data, to output just the boundaries we need to `static/data/postcode-units.geojson`:
 
     script/generate-postcode-units /path/to/gb-postcodes-v5/units
+
+Note that `script/generate-postcode-units` removes overlaps when exporting, with mapshaper’s `-clean` operation. We do this to reduce filesize and prevent duplicate/identical polygons from appearing in the output (and being stacked on top of one another on the map). But it is _not_ really how postcodes work in the real world, and it means some postcodes with useful data might end up missing from our map (eg: multiple postcodes covering different floors in a single block of flats).
 
 ## Regenerating dumb-meters.csv
 
@@ -208,6 +212,6 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
     from
         combined
     where
-        tender_area in ('FREDERICK RD GRID', 'MARPLE', 'MOSS LN', 'MOSS SIDE');
+        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars');
     .output stdout
     .mode columns

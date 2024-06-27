@@ -11,24 +11,58 @@ DATA_DIR="$(dirname "$0")/../static/data" # path to /data directory
 # increased to 5 decimal places.
 PRECISION="0.0001"
 
+# To reduce the filesize of `postcode-units.geojson` as much as possible,
+# we only include postcode units that ENWL reports are within the tender
+# areas that we care about (see script/generate-tender-areas)
 mapshaper \
     -i \
-        "$UNITS_DIR/M1*" \
-        "$UNITS_DIR/M2*" \
-        "$UNITS_DIR/M3*" \
-        "$UNITS_DIR/M4*" \
-        "$UNITS_DIR/M5*" \
-        "$UNITS_DIR/M6*" \
-        "$UNITS_DIR/M7*" \
-        "$UNITS_DIR/M8*" \
-        "$UNITS_DIR/M9*" \
-        "$UNITS_DIR/BL*" \
-        "$UNITS_DIR/SK*" \
-        "$UNITS_DIR/WA*" \
-        "$UNITS_DIR/WN*" \
+        "$UNITS_DIR/BB5.geojson" \
+        "$UNITS_DIR/BB7.geojson" \
+        "$UNITS_DIR/BB9.geojson" \
+        "$UNITS_DIR/BB12.geojson" \
+        "$UNITS_DIR/BB18.geojson" \
+        "$UNITS_DIR/BD23.geojson" \
+        "$UNITS_DIR/BL9.geojson" \
+        "$UNITS_DIR/M1.geojson" \
+        "$UNITS_DIR/M2.geojson" \
+        "$UNITS_DIR/M3.geojson" \
+        "$UNITS_DIR/M4.geojson" \
+        "$UNITS_DIR/M5.geojson" \
+        "$UNITS_DIR/M6.geojson" \
+        "$UNITS_DIR/M7.geojson" \
+        "$UNITS_DIR/M8.geojson" \
+        "$UNITS_DIR/M12.geojson" \
+        "$UNITS_DIR/M13.geojson" \
+        "$UNITS_DIR/M14.geojson" \
+        "$UNITS_DIR/M15.geojson" \
+        "$UNITS_DIR/M16.geojson" \
+        "$UNITS_DIR/M19.geojson" \
+        "$UNITS_DIR/M21.geojson" \
+        "$UNITS_DIR/M22.geojson" \
+        "$UNITS_DIR/M24.geojson" \
+        "$UNITS_DIR/M25.geojson" \
+        "$UNITS_DIR/M30.geojson" \
+        "$UNITS_DIR/M33.geojson" \
+        "$UNITS_DIR/M40.geojson" \
+        "$UNITS_DIR/M41.geojson" \
+        "$UNITS_DIR/M45.geojson" \
+        "$UNITS_DIR/M46.geojson" \
+        "$UNITS_DIR/M50.geojson" \
+        "$UNITS_DIR/M60.geojson" \
+        "$UNITS_DIR/OL10.geojson" \
+        "$UNITS_DIR/OL6.geojson" \
+        "$UNITS_DIR/PR25.geojson" \
+        "$UNITS_DIR/PR26.geojson" \
+        "$UNITS_DIR/PR26.geojson" \
+        "$UNITS_DIR/PR25.geojson" \
+        "$UNITS_DIR/PR4.geojson" \
+        "$UNITS_DIR/PR5.geojson" \
+        "$UNITS_DIR/PR7.geojson" \
+        "$UNITS_DIR/SK3.geojson" \
+        "$UNITS_DIR/SK6.geojson" \
         combine-files \
     -merge-layers \
     -clip "$DATA_DIR/tender-areas.geojson" \
     -drop fields="mapit_code" \
-    -clean allow-overlaps \
+    -clean \
     -o precision="$PRECISION" "$DATA_DIR/postcode-units.geojson"
