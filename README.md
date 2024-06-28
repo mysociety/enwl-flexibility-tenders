@@ -212,6 +212,6 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
     from
         combined
     where
-        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars');
+        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'CATTERALL WATER WKS', 'CHORLEY SOUTH', 'CONISTON', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars', 'SETTLE');
     .output stdout
     .mode columns

@@ -22,7 +22,13 @@ mapshaper \
         "$UNITS_DIR/BB12.geojson" \
         "$UNITS_DIR/BB18.geojson" \
         "$UNITS_DIR/BD23.geojson" \
+        "$UNITS_DIR/BD24.geojson" \
         "$UNITS_DIR/BL9.geojson" \
+        "$UNITS_DIR/LA2.geojson" \
+        "$UNITS_DIR/LA12.geojson" \
+        "$UNITS_DIR/LA20.geojson" \
+        "$UNITS_DIR/LA21.geojson" \
+        "$UNITS_DIR/LA22.geojson" \
         "$UNITS_DIR/M1.geojson" \
         "$UNITS_DIR/M2.geojson" \
         "$UNITS_DIR/M3.geojson" \
@@ -51,13 +57,15 @@ mapshaper \
         "$UNITS_DIR/M60.geojson" \
         "$UNITS_DIR/OL10.geojson" \
         "$UNITS_DIR/OL6.geojson" \
-        "$UNITS_DIR/PR25.geojson" \
-        "$UNITS_DIR/PR26.geojson" \
-        "$UNITS_DIR/PR26.geojson" \
-        "$UNITS_DIR/PR25.geojson" \
+        "$UNITS_DIR/PR1.geojson" \
+        "$UNITS_DIR/PR2.geojson" \
+        "$UNITS_DIR/PR3.geojson" \
         "$UNITS_DIR/PR4.geojson" \
         "$UNITS_DIR/PR5.geojson" \
+        "$UNITS_DIR/PR6.geojson" \
         "$UNITS_DIR/PR7.geojson" \
+        "$UNITS_DIR/PR25.geojson" \
+        "$UNITS_DIR/PR26.geojson" \
         "$UNITS_DIR/SK3.geojson" \
         "$UNITS_DIR/SK6.geojson" \
         combine-files \
