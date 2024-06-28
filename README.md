@@ -70,7 +70,7 @@ Then run `script/generate-tender-areas` to output just the tender areas we care 
 To regenerate them, you’ll first need to:
 
 - Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
-- Generate `static/data/areas.geojson` using `script/generate-tender-areas`, as described above
+- Generate `static/data/tender-areas.geojson` using `script/generate-tender-areas`, as described above
 - Download and unarchive [Mark Longair’s postcode boundaries data](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/) (approx 1 GB download, 4.25 GB once unarchived)
 
 Then, with these things in place, you can run `script/generate-postcode-units`, passing in the path to the `units` directory inside Mark’s data, to output just the boundaries we need to `static/data/postcode-units.geojson`:
@@ -215,3 +215,17 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
         tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'CATTERALL WATER WKS', 'CHORLEY SOUTH', 'CONISTON', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars', 'SETTLE');
     .output stdout
     .mode columns
+
+# Regenerating smart-meters.geojson
+
+`static/data/smart-meters.geojson` is a GeoJSON file of points representing smart meters, in the ENWL tender areas we’re interested in.
+
+To recreate it, you’ll need to:
+
+- Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
+- Generate `static/data/tender-areas.geojson` using `script/generate-tender-areas`, as described above
+- Download [ENWL’s Smart Meter Installation GeoJSON file](https://electricitynorthwest.opendatasoft.com/explore/dataset/smart-meter-installation/information/?disjunctive.dist_number&disjunctive.pry_feeder) – which we’ll refer to as `smart-meter-installation.geojson` below
+
+Then, with these things in place, you can run `script/generate-smart-meters`, passing in the path to the `smart-meter-installation.geojson` file, to output just the points we need to `static/data/smart-meters.geojson`:
+
+    script/generate-smart-meters /path/to/smart-meter-installation.geojson

@@ -366,7 +366,7 @@ createApp({
             $.ajax({
                 type: 'GET',
                 dataType: 'json',
-                url: 'static/data/smart-meter-installation.geojson'
+                url: 'static/data/smart-meters.geojson'
             }).done(function(geojsonObj){
                 var layer = L.geoJSON(
                     geojsonObj.features,

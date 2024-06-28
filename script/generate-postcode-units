@@ -4,6 +4,7 @@ set -e
 
 UNITS_DIR="$1" # path to gb-postcodes-v5/units directory, no final slash
 DATA_DIR="$(dirname "$0")/../static/data" # path to /data directory
+TENDER_AREAS_GEOJSON="$DATA_DIR/tender-areas.geojson"
 
 # 4 decimal places is pretty brutal, but still generates roughly accurate
 # postcode unit boundaries, at almost a third the filesize of the source
@@ -70,7 +71,7 @@ mapshaper \
         "$UNITS_DIR/SK6.geojson" \
         combine-files \
     -merge-layers \
-    -clip "$DATA_DIR/tender-areas.geojson" \
+    -clip "$TENDER_AREAS_GEOJSON" \
     -drop fields="mapit_code" \
     -clean \
     -o precision="$PRECISION" "$DATA_DIR/postcode-units.geojson"

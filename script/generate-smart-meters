@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+SMART_METERS_GEOJSON="$1" # path to ENWL smart meters GeoJSON file
+DATA_DIR="$(dirname "$0")/../static/data" # path to /data directory
+TENDER_AREAS_GEOJSON="$DATA_DIR/tender-areas.geojson"
+
+PRECISION="0.00001"
+
+mapshaper \
+    -i "$SMART_METERS_GEOJSON" \
+    -clip "$TENDER_AREAS_GEOJSON" \
+    -o precision="$PRECISION" "$DATA_DIR/smart-meters.geojson"
