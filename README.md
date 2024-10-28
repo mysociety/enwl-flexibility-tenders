@@ -31,7 +31,16 @@ You can build the site to `_site` (without serving it) with:
 
     script/build
 
-## Regenerating tenders.csv
+## Regenerating data
+
+- [Regenerating tenders.csv](#regenerating-tenderscsv)
+- [Regenerating tender-areas.geojson](#regenerating-tender-areasgeojson)
+- [Regenerating postcode-units.geojson](#regenerating-postcode-unitsgeojson)
+- [Regenerating dumb-meters.csv](#regenerating-dumb-meterscsv)
+- [Regenerating warm-homes-local-grant-postcodes.csv](#regenerating-warm-homes-local-grant-postcodescsv)
+- [Regenerating smart-meters.geojson](#regenerating-smart-metersgeojson)
+
+### Regenerating tenders.csv
 
 `static/data/tenders.csv` is a simplified copy of the [tender requirements CSV provided by ENWL](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/).
 
@@ -46,7 +55,7 @@ Then use `csvfilter` to pick out just the columns we need, into `static/data/ten
 
     csvfilter -f 2,3,5,6,7,8,9,10,11,12,17,18,19,20,21,22,23 enwl-flexibility-tender-postcode-data.csv > static/data/tenders.csv
 
-## Regenerating tender-areas.geojson
+### Regenerating tender-areas.geojson
 
 `static/data/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round) that we’re interested in, in the Greater Manchester area.
 
@@ -63,7 +72,7 @@ Then run `script/generate-tender-areas` to output just the tender areas we care 
 
 **NOTE:** If you change the list of tender areas that you’re interested in, you’ll also want to change the hand-picked postcode units in `script/generate-postcode-units`, and the `where tender_area` clause in the `dumb-meters.csv` SQL below.
 
-## Regenerating postcode-units.geojson
+### Regenerating postcode-units.geojson
 
 `static/data/postcode-units.geojson` contains the boundary polygon data for all postcode units (eg: `M15 5DD`) inside the ENWL tender areas (see `tender-areas.geojson` above), based on [postcode boundaries from the wonderful Mark Longair](https://longair.net/blog/2021/08/23/open-data-gb-postcode-unit-boundaries/).
 
@@ -79,7 +88,7 @@ Then, with these things in place, you can run `script/generate-postcode-units`, 
 
 Note that `script/generate-postcode-units` removes overlaps when exporting, with mapshaper’s `-clean` operation. We do this to reduce filesize and prevent duplicate/identical polygons from appearing in the output (and being stacked on top of one another on the map). But it is _not_ really how postcodes work in the real world, and it means some postcodes with useful data might end up missing from our map (eg: multiple postcodes covering different floors in a single block of flats).
 
-## Regenerating dumb-meters.csv
+### Regenerating dumb-meters.csv
 
 `static/data/dumb-meters.csv` is a CSV of data about electricity and gas meters and consumption, per postcode in ENWL tender areas.
 
@@ -216,7 +225,7 @@ Then exporting data from just the required tender areas, to a CSV:
     .output stdout
     .mode columns
 
-# Regenerating warm-homes-local-grant-postcodes.csv
+### Regenerating warm-homes-local-grant-postcodes.csv
 
 `static/data/warm-homes-local-grant-postcodes.csv` is a CSV of the postcodes and local authorities in [DESNZ’s Excel spreadsheet of postcodes elligible for the December 2024 round of Warm Homes Local Grants](https://www.gov.uk/government/publications/warm-homes-local-grant) and _also_ within the ENWL tender areas.
 
@@ -279,7 +288,7 @@ Then exporting data from just the required tender areas, to a CSV:
     .output stdout
     .mode columns
 
-# Regenerating smart-meters.geojson
+### Regenerating smart-meters.geojson
 
 `static/data/smart-meters.geojson` is a GeoJSON file of points representing smart meters, in the ENWL tender areas we’re interested in.
 
