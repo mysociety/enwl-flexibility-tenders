@@ -52,7 +52,12 @@ createApp({
                 {
                     id: 'smart-meters',
                     label: 'ENWL smart meter adoption',
-                    layer: null,
+                    layer: null
+                },
+                {
+                    id: 'warm-homes-local-grants',
+                    label: 'Warm Homes Local Grant postcodes, Dec 2024',
+                    layer: null
                 },
                 {
                     id: 'dumb-meters',
@@ -417,15 +422,20 @@ createApp({
                     type: 'GET',
                     dataType: 'text',
                     url: 'static/data/dumb-meters.csv'
+                }),
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'text',
+                    url: 'static/data/warm-homes-local-grant-postcodes.csv'
                 })
-            ).done(function(responseObj1, responseObj2){
+            ).done(function(responseObj1, responseObj2, responseObj3){
                 var meters = Papa.parse(responseObj2[0], {
                     dynamicTyping: true,
                     header: true,
                     skipEmptyLines: true
                 }).data;
 
-                var layer = L.geoJSON(
+                var metersLayer = L.geoJSON(
                     responseObj1[0].features,
                     {
                         pane: 'polygonPane',
@@ -496,7 +506,7 @@ createApp({
                 );
 
                 var dataLayer = _this.getDataLayer('dumb-meters');
-                dataLayer.layer = layer;
+                dataLayer.layer = metersLayer;
 
                 // Create min/max stats and save them to the layer,
                 // so they're available to shaders later on
@@ -514,6 +524,55 @@ createApp({
                         max: _.max(values)
                     };
                 });
+
+                var grants = Papa.parse(responseObj3[0], {
+                    dynamicTyping: true,
+                    header: true,
+                    skipEmptyLines: true
+                }).data;
+                var grantPostcodes = _.map(grants, function(item){ return item.postcode });
+
+                var grantsLayer = L.geoJSON(
+                    // Remove any tender postcode areas that don't have a warm homes grant
+                    _.filter(
+                        responseObj1[0].features,
+                        function(feature){
+                            return grantPostcodes.indexOf(feature.properties.postcodes) != -1;
+                        }
+                    ),
+                    {
+                        pane: 'polygonPane',
+                        style: {
+                            color: '#3388ff',
+                            weight: 1,
+                            fillOpacity: 0.2
+                        },
+                        onEachFeature: function(feature, layer){
+                            // Enrich GeoJSON feature properties with data from CSV,
+                            // to make data easier to work with in Leaflet.GeoJSON.eachLayer
+                            feature.properties = _.extend(
+                                feature.properties,
+                                _.findWhere(
+                                    grants,
+                                    { postcode: feature.properties.postcodes }
+                                )
+                            );
+
+                            var label = renderTemplate('warm-homes-local-grants-tooltip', {
+                                postcode: feature.properties.postcode || feature.properties.postcodes,
+                                tender_area: feature.properties.tender_area,
+                                local_authority: feature.properties.local_authority
+                            });
+
+                            layer.bindTooltip(label, {
+                                className: "pe-none" // prevent flicker when mousing over tooltip
+                            });
+                        }
+                    }
+                );
+
+                var dataLayer = _this.getDataLayer('warm-homes-local-grants');
+                dataLayer.layer = grantsLayer;
             });
         },
 

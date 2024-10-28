@@ -186,7 +186,7 @@ Then creating a SQL view that joins all the tables together, picking just locati
         left join
             gas on electricity_all.pc = gas.pc;
 
-Then exporting data from just the required tender areas (Moss Lane, Moss Side, Frederick Rd BSP, and Marple) to a CSV:
+Then exporting data from just the required tender areas, to a CSV:
 
     .mode csv
     .output ../static/data/dumb-meters.csv
@@ -209,6 +209,69 @@ Then exporting data from just the required tender areas (Moss Lane, Moss Side, F
         cast(round(gas_consumption_kwh) as int) as "gas_consumption_kwh",
         cast(round(gas_mean_cons_kwh) as int) as "gas_mean_cons_kwh",
         cast(round(gas_median_cons_kwh) as int) as "gas_median_cons_kwh"
+    from
+        combined
+    where
+        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'CATTERALL WATER WKS', 'CHORLEY SOUTH', 'CONISTON', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars', 'SETTLE');
+    .output stdout
+    .mode columns
+
+# Regenerating warm-homes-local-grant-postcodes.csv
+
+`static/data/warm-homes-local-grant-postcodes.csv` is a CSV of the postcodes and local authorities in [DESNZ’s Excel spreadsheet of postcodes elligible for the December 2024 round of Warm Homes Local Grants](https://www.gov.uk/government/publications/warm-homes-local-grant) and _also_ within the ENWL tender areas.
+
+To create it, I exported a CSV of the "Postcode" and "Local authority" columns from the DESNZ spreadsheet, and then imported it into a SQLite database:
+
+    sqlite3 warm-home-local-grant.sqlite
+
+From here on, everything was done from inside the SQLite command prompt. First, creating tables and indexes:
+
+    create table grants(postcode, local_authority);
+    create table postcodes(postcode, tender_area);
+
+    create index idx_grants_postcode on grants (postcode);
+    create index idx_postcodes_postcode on postcodes (postcode);
+
+Then importing the data:
+
+    .mode csv
+    .import --skip 1 warm-homes-local-grant.csv grants
+    .import --skip 1 enwl-postcodes.csv postcodes
+    .mode columns
+
+Then adding a "cleaned" postcode column, `pc`, that’s standardised across both tables:
+
+    alter table grants add column pc;
+    alter table postcodes add column pc;
+
+    create index idx_grants_pc on grants (pc);
+    create index idx_postcodes_pc on postcodes (pc);
+
+    update grants set pc = upper(replace(postcode, ' ', ''));
+    update postcodes set pc = upper(replace(postcode, ' ', ''));
+
+Then creating a SQL view that joins the two tables together:
+
+    create view
+        combined
+    as
+        select
+            postcodes.postcode,
+            postcodes.tender_area,
+            grants.local_authority
+        from
+            postcodes
+        inner join
+            grants on postcodes.pc = grants.pc;
+
+Then exporting data from just the required tender areas, to a CSV:
+
+    .mode csv
+    .output ../static/data/warm-homes-local-grant-postcodes.csv
+    select
+        postcode,
+        tender_area,
+        local_authority
     from
         combined
     where
