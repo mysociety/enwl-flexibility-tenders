@@ -14,17 +14,26 @@ PRECISION="0.0001"
 
 # To reduce the filesize of `postcode-units.geojson` as much as possible,
 # we only include postcode units that ENWL reports are within the tender
-# areas that we care about (see script/generate-tender-areas)
+# areas that we care about (see script/generate-tender-areas).
+#
+# If you ever change the tender areas you’re interested in, you’ll want
+# to amend this list of postcode units to match. The following SQL query,
+# run against enwl-flexibility-tender-postcode-data.csv), will output an
+# alphabetically sorted list of postcode units in any of the chosen
+# tender areas:
+#
+#     select SUBSTR(POSTCODE, 1, INSTR(POSTCODE, ' ') - 1) as postcode_district,
+#     group_concat(distinct name) as names from postcodes WHERE lower(name) in 
+#     ('ardwick', 'bolton by bowland', 'catterall waterworks', 'coniston', 
+#     'frederick rd bsp', 'marple', 'moss side (longsight)', 'settle') group by
+#     postcode_district order by postcode_district;
+
 mapshaper \
     -i \
         "$UNITS_DIR/BB5.geojson" \
         "$UNITS_DIR/BB7.geojson" \
-        "$UNITS_DIR/BB9.geojson" \
-        "$UNITS_DIR/BB12.geojson" \
-        "$UNITS_DIR/BB18.geojson" \
         "$UNITS_DIR/BD23.geojson" \
         "$UNITS_DIR/BD24.geojson" \
-        "$UNITS_DIR/BL9.geojson" \
         "$UNITS_DIR/LA2.geojson" \
         "$UNITS_DIR/LA12.geojson" \
         "$UNITS_DIR/LA20.geojson" \
@@ -38,35 +47,23 @@ mapshaper \
         "$UNITS_DIR/M6.geojson" \
         "$UNITS_DIR/M7.geojson" \
         "$UNITS_DIR/M8.geojson" \
+        "$UNITS_DIR/M9.geojson" \
         "$UNITS_DIR/M12.geojson" \
         "$UNITS_DIR/M13.geojson" \
         "$UNITS_DIR/M14.geojson" \
         "$UNITS_DIR/M15.geojson" \
         "$UNITS_DIR/M16.geojson" \
-        "$UNITS_DIR/M19.geojson" \
         "$UNITS_DIR/M21.geojson" \
         "$UNITS_DIR/M22.geojson" \
-        "$UNITS_DIR/M24.geojson" \
         "$UNITS_DIR/M25.geojson" \
         "$UNITS_DIR/M30.geojson" \
-        "$UNITS_DIR/M33.geojson" \
+        "$UNITS_DIR/M34.geojson" \
         "$UNITS_DIR/M40.geojson" \
         "$UNITS_DIR/M41.geojson" \
-        "$UNITS_DIR/M45.geojson" \
-        "$UNITS_DIR/M46.geojson" \
         "$UNITS_DIR/M50.geojson" \
         "$UNITS_DIR/M60.geojson" \
-        "$UNITS_DIR/OL10.geojson" \
         "$UNITS_DIR/OL6.geojson" \
-        "$UNITS_DIR/PR1.geojson" \
-        "$UNITS_DIR/PR2.geojson" \
         "$UNITS_DIR/PR3.geojson" \
-        "$UNITS_DIR/PR4.geojson" \
-        "$UNITS_DIR/PR5.geojson" \
-        "$UNITS_DIR/PR6.geojson" \
-        "$UNITS_DIR/PR7.geojson" \
-        "$UNITS_DIR/PR25.geojson" \
-        "$UNITS_DIR/PR26.geojson" \
         "$UNITS_DIR/SK3.geojson" \
         "$UNITS_DIR/SK6.geojson" \
         combine-files \

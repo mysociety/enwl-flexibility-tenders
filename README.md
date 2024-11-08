@@ -1,6 +1,8 @@
 # ENWL flexibility tenders
 
-A map of [Spring 2024 flexibility tender areas from Electricity North West](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/information/).
+A map of [Autumn 2024 flexibility tender areas from Electricity North West](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/information/).
+
+Find out more about [ENWL’s Autumn 2024 flex requirement](https://www.enwl.co.uk/future-energy/flexibility-hub/latest-requirement/autumn-2024/).
 
 ## Use it online
 
@@ -46,31 +48,31 @@ You can build the site to `_site` (without serving it) with:
 
 To recreate it, you’ll need to:
 
-- [Download ENWL’s tender requirements CSV](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/) – let’s call it `enwl-flexibility-tender-postcode-data.csv`
-- Install `csvfilter` to extract just the columns we need from `enwl-flexibility-tender-postcode-data.csv` (annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
+- [Download ENWL’s tender requirements CSV](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/) – let’s call it `enwl-flexibility-tender-site-requirements.csv`
+- Install `csvfilter` to extract just the columns we need from `enwl-flexibility-tender-site-requirements.csv` (annoyingly, [an outstanding bug means you need to install a third-party branch](https://github.com/codeinthehole/csvfilter/issues/13) to make it work in this specific situation):
 
        pipx install "git+https://github.com/lk-jeffpeck/csvfilter.git@ec433f14330fbbf5d41f56febfeedac22868a949"
 
 Then use `csvfilter` to pick out just the columns we need, into `static/data/tenders.csv`:
 
-    csvfilter -f 2,3,5,6,7,8,9,10,11,12,17,18,19,20,21,22,23 enwl-flexibility-tender-postcode-data.csv > static/data/tenders.csv
+    csvfilter -f 2,3,5,6,7,8,9,10,11,12,17,18,19,20,21,22,23 /path/to/enwl-flexibility-tender-site-requirements.csv > static/data/tenders.csv
 
 ### Regenerating tender-areas.geojson
 
-`static/data/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements (Spring 2024 round) that we’re interested in, in the Greater Manchester area.
+`static/data/tender-areas.json` is a GeoJSON FeatureCollection of areas with ENWL flexibility tender requirements that we’re interested in, in the Greater Manchester area.
 
 [ENWL provides a GeoJSON file of their tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/), but it includes duplicate polygons (the same area can have multiple tenders of different types at different times). For simplicity, we deduplicate these polygons, with `script/generate-tender-areas`.
 
 To regenerate `tender-areas.geojson`, you will need to:
 
 - Install the [`mapshaper` command line utility](https://github.com/mbloch/mapshaper)
-- Download the GeoJSON file of [ENWL tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/)
+- Download the GeoJSON file of [ENWL tender requirements](https://electricitynorthwest.opendatasoft.com/explore/dataset/enwl-flexibility-tender-site-requirements/export/) – we’ll call it `enwl-flexibility-tender-site-requirements.geojson`
 
 Then run `script/generate-tender-areas` to output just the tender areas we care about, to `static/data/tender-areas.geojson`:
 
-    script/generate-tender-areas /path/to/enwl-flexibility-tenders.geojson
+    script/generate-tender-areas /path/to/enwl-flexibility-tender-site-requirements.geojson
 
-**NOTE:** If you change the list of tender areas that you’re interested in, you’ll also want to change the hand-picked postcode units in `script/generate-postcode-units`, and the `where tender_area` clause in the `dumb-meters.csv` SQL below.
+**NOTE:** If you change the list of tender areas that you’re interested in, you’ll also want to change the hand-picked postcode units in `script/generate-postcode-units` (see a comment there for a SQL query that will come in useful), and the `where tender_area` clause in the `dumb-meters.csv` SQL below.
 
 ### Regenerating postcode-units.geojson
 
@@ -221,7 +223,7 @@ Then exporting data from just the required tender areas, to a CSV:
     from
         combined
     where
-        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'CATTERALL WATER WKS', 'CHORLEY SOUTH', 'CONISTON', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars', 'SETTLE');
+        lower(tender_area) in ('ardwick', 'bolton by bowland', 'catterall waterworks', 'coniston', 'frederick rd bsp', 'marple', 'moss side (longsight)', 'settle');
     .output stdout
     .mode columns
 
@@ -284,7 +286,7 @@ Then exporting data from just the required tender areas, to a CSV:
     from
         combined
     where
-        tender_area in ('ARDWICK', 'BOLTON BY BOWLAND', 'CATTERALL WATER WKS', 'CHORLEY SOUTH', 'CONISTON', 'FREDERICK RD GRID', 'PEEL ST', 'MARPLE', 'MOSS LN', 'MOSS SIDE', 'Moss Side (Leyland) & Seven Stars', 'SETTLE');
+        lower(tender_area) in ('ardwick', 'bolton by bowland', 'catterall waterworks', 'coniston', 'frederick rd bsp', 'marple', 'moss side (longsight)', 'settle');
     .output stdout
     .mode columns
 
